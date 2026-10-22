@@ -1,0 +1,9 @@
+numpy>=1.26
+scipy>=1.11
+scikit-learn>=1.4
+pandas>=2.1
+streamlit>=1.39
+plotly>=5.20
+soundfile>=0.12   # optional: FLAC support
+pytest>=8
+# M2 (CNN) later: torch>=2.2

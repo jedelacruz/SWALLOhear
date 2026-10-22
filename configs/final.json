@@ -1,0 +1,8 @@
+{
+ "hi": 0.7,
+ "lo": 0.65,
+ "merge_gap_s": 0.4,
+ "tau": 0.5,
+ "snr_min": 11.5,
+ "note": "values selected on VALIDATION participants by scripts/run_reliability_v2.py; snr_min/tau are overridden by results/reliability_v2.json when it exists"
+}
