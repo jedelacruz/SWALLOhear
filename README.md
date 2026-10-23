@@ -4,12 +4,20 @@ Reliability-aware acoustic swallowing-event analysis from neck-microphone audio.
 It detects swallowing-related acoustic events, localizes onset/offset, and says **how far to trust each result**
 (Confident / Low-confidence / No event / Inconclusive). It does not diagnose dysphagia, aspiration or pneumonia.
 
+![SWALLOHear web app demo](docs/demo.gif)
+
+**Web app guide:** [`docs/APP_GUIDE.md`](docs/APP_GUIDE.md) covers every feature with screenshots, how it works, exports and
+troubleshooting. Full video walkthrough: [`docs/demo.webm`](docs/demo.webm).
+
 ## Data
 Khalifa, Donohue, Coyle & Sejdić (2021), *Swallowing High Resolution Cervical Auscultation Signals*, Zenodo, https://doi.org/10.5281/zenodo.4539695 (CC BY 4.0).
 Not stored in this repo. The files we received contain **1,285 recordings; 1,092 have labelled swallows (1,876 swallows, 174 participants)**; labels are video-fluoroscopy frame numbers at 60 fps; signals are 4 kHz, 4 channels (we use the microphone, channel 0).
 This is fewer than the headline numbers on the dataset page (248 patients, 3,144 swallows); we report what the files contain. The file prefixes `ns` / `s` (139 / 35 participants) are kept as unlabelled groups: their meaning (e.g. stroke) is **not verified**, so no stroke claims are made.
 
 ## Quick start (Windows or Mac)
+Use **Python 3.13**. On Windows 11 with Smart App Control on, brand-new Python versions and package wheels can be blocked
+(`DLL load failed … Application Control policy`); `requirements.txt` pins established releases that load (see the
+[guide](docs/APP_GUIDE.md#troubleshooting)).
 ```
 python -m venv .venv
 .venv\Scripts\activate          # Mac/Linux: source .venv/bin/activate
@@ -44,4 +52,4 @@ All numbers below come from `results/*.json`; the bootstrap script checks itself
 Modest absolute accuracy (F1 about 0.5). The reliability-aware output buys precision with a large loss of recall; it is a trade-off, not a free improvement. Some "false detections" may be real swallows that were not labelled (the dataset authors report this); no manual audit was done yet. Noise tests use synthetic white noise only, not real household noise. No CNN was built (a Random Forest was used instead). One split, one run, 27 test participants. Group labels `ns`/`s` are unverified, so no stroke-specific claims. Not validated on any smartphone or low-cost stethoscope. Research use only; no clinical or Philippine validation.
 
 ## Layout
-`src/swallohear/` core package (io, preprocess, features, detectors, reliability, final) · `scripts/` experiments · `app/streamlit_app.py` web app · `configs/final.json` selected thresholds · `models/` trained models · `data/demo/` demo clips (CC BY 4.0) · `results/` experiment outputs · `tests/`.
+`src/swallohear/` core package (io, preprocess, features, detectors, reliability, final) · `scripts/` experiments · `app/streamlit_app.py` + `app/views/` web app (guide: `docs/APP_GUIDE.md`) · `configs/final.json` selected thresholds · `models/` trained models · `data/demo/` demo clips (CC BY 4.0) · `results/` experiment outputs · `tests/`.
