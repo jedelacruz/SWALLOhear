@@ -22,21 +22,33 @@ class Analyzer:
         if snr_min is not None: self.snr_min = snr_min
 
     def analyze(self, signal, orig_nyquist=2000.0):
+        return self.assemble(self.score(signal, orig_nyquist))
+
+    def score(self, signal, orig_nyquist=2000.0):
+        """Expensive half: preprocessing, quality indicators and per-frame RF scores. Cache this; assemble() is cheap."""
         t0 = time.perf_counter(); xp, meta = preprocess(signal); q = signal_quality(signal, xp, meta, orig_nyquist)
-        p = self.rf.predict_proba(xp); e = frame_energy_db(frame_signal(xp)); floor = float(np.percentile(e, 10)); t = frame_times(len(p))
+        p = self.rf.predict_proba(xp); e = frame_energy_db(frame_signal(xp))
+        return dict(p=p, e=e, floor=float(np.percentile(e, 10)), t=frame_times(len(p)), quality=q,
+                    orig_nyquist=float(orig_nyquist), latency_s=time.perf_counter() - t0)
+
+    def assemble(self, scored, hi=None, lo=None, merge=None, tau=None, snr_min=None):
+        """Cheap half: quality gate, event assembly and reliability scoring. None means the validated setting."""
+        t0 = time.perf_counter(); p, e, floor, t, q = (scored[k] for k in ("p", "e", "floor", "t", "quality"))
+        hi = self.hi if hi is None else hi; lo = self.lo if lo is None else lo; merge = self.merge if merge is None else merge
+        tau = self.tau if tau is None else tau; snr_min = self.snr_min if snr_min is None else snr_min
         codes = []
-        if q["snr_db"] < self.snr_min: codes.append("LOW_SNR")
+        if q["snr_db"] < snr_min: codes.append("LOW_SNR")
         if q["clip_frac"] > 0.02: codes.append("CLIPPING")
         if q["flat_frac"] > 0.30: codes.append("FLATLINE")
-        if orig_nyquist < 1000: codes.append("LOW_BANDWIDTH")
+        if scored["orig_nyquist"] < 1000: codes.append("LOW_BANDWIDTH")
         if q["duration_s"] < 1.0: codes.append("TOO_SHORT")
         if q["duration_s"] > 120: codes.append("TOO_LONG")
-        fr = scores_to_events(p, hi=self.hi, lo=self.lo, merge_gap_s=self.merge); evs = []
+        fr = scores_to_events(p, hi=hi, lo=lo, merge_gap_s=merge); evs = []
         if fr:
             X = np.array([event_features(p[s:e_ + 1], e[s:e_ + 1], floor, q["snr_db"]) for s, e_ in fr]); sc = self.rel.predict_proba(X)[:, 1]
             for (s, e_), sco, x in zip(fr, sc, X):
                 evs.append(dict(onset_s=float(t[s]), offset_s=float(t[e_]), duration_ms=float((t[e_] - t[s]) * 1000), reliability=float(sco),
-                                model_confidence=float(x[0]), tier="Confident" if sco >= self.tau else "Low-confidence"))
+                                model_confidence=float(x[0]), tier="Confident" if sco >= tau else "Low-confidence", features=[float(v) for v in x]))
         status = "Inconclusive" if codes else ("No event" if not evs else "Analyzable")
         return dict(status=status, reason_codes=codes, events=evs if not codes else [], withheld_candidates=evs if codes else [],
-                    quality=q, frame_prob=p, frame_t=t, latency_s=time.perf_counter() - t0, tau=self.tau, snr_min=self.snr_min)
+                    quality=q, frame_prob=p, frame_t=t, latency_s=scored["latency_s"] + time.perf_counter() - t0, tau=tau, snr_min=snr_min)

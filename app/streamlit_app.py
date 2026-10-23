@@ -1,68 +1,88 @@
-"""SWALLOHear web app (research use only).  Run from the repo folder:  streamlit run app/streamlit_app.py
-Uses the trained noise-augmented Random Forest + learned event-reliability model + signal-quality gate (src/swallohear/final.py).
-NOTE: written without Streamlit installed in the build environment; the analysis code is tested, the page layout code is not."""
-import sys, pathlib, json, io
-ROOT = pathlib.Path(__file__).resolve().parents[1]; sys.path.insert(0, str(ROOT / "src"))
-import numpy as np, pandas as pd, streamlit as st, plotly.graph_objects as go
-from swallohear import io as sio
-from swallohear.final import Analyzer
+"""SWALLOHear web app (RESEARCH USE ONLY).
 
-st.set_page_config(page_title="SWALLOHear", layout="wide")
-st.title("SWALLOHear")
-st.warning("RESEARCH USE ONLY. Detects swallowing-related acoustic events in neck-microphone audio. It is NOT a diagnostic device and does not assess dysphagia, aspiration or pneumonia. Do not upload identifiable patient audio to a public instance.")
+Run from the repo folder:   streamlit run app/streamlit_app.py
 
-@st.cache_resource
-def load_analyzer(): return Analyzer(str(ROOT / "models"), str(ROOT / "configs" / "final.json"), str(ROOT / "results" / "reliability_v2.json"))
-try: A = load_analyzer()
-except Exception as e: st.error(f"Trained models not found in models/ ({e}). Run the training scripts first."); st.stop()
+Uses the trained noise-augmented Random Forest + learned event-reliability model
++ signal-quality gate (src/swallohear/final.py). Pages live in app/views/.
+"""
+import streamlit as st
 
-DEMO = ROOT / "data" / "demo"; demos = sorted(DEMO.glob("*.wav")) if DEMO.exists() else []
+from views import common as C, analyze, batch, about
+
+st.set_page_config(page_title="SWALLOHear", page_icon=":material/graphic_eq:", layout="wide")
+
+st.markdown("""<style>
+.block-container {padding-top:3.2rem; max-width:1440px;}
+.sh-brand {display:flex; align-items:baseline; gap:.75rem; flex-wrap:wrap; margin-bottom:.1rem;}
+.sh-brand b {font-size:1.9rem; letter-spacing:-.02em;}
+.sh-brand b span {color:#1B7F7A;}
+.sh-brand small {opacity:.65;}
+.sh-verdict {display:flex; gap:1rem; align-items:flex-start; border-radius:14px; padding:1rem 1.25rem; margin:.4rem 0 1rem;
+             background:color-mix(in srgb, var(--c) 13%, transparent); border:1px solid color-mix(in srgb, var(--c) 45%, transparent);}
+.sh-icon {flex:none; width:2.4rem; height:2.4rem; border-radius:50%; background:var(--c); color:#fff;
+          display:grid; place-items:center; font-weight:700; font-size:1.25rem;}
+.sh-verdict h3 {margin:0; padding:0; font-size:1.3rem;}
+.sh-verdict p {margin:.15rem 0 0; opacity:.85;}
+.sh-verdict small {display:block; margin-top:.35rem; opacity:.7;}
+.sh-chip {display:inline-block; border:1px solid var(--c); border-radius:999px; padding:.08rem .65rem; font-size:.8rem;
+          margin:.5rem .35rem 0 0; cursor:help;}
+</style>""", unsafe_allow_html=True)
+
+# Page widgets are removed from session state when their page is not shown; re-asserting the keys keeps
+# choices across page switches. Defaults live here so widgets never get both a default and a state value.
+PERSIST = dict(src=None, demo_pick=None, syn_n=4, syn_dur=20, syn_seed=0, noise_on=False, noise_kind=C.NOISE_KINDS[0],
+               noise_snr=10, clip_on=False, spec_on=True, sweep_kind=C.NOISE_KINDS[0])
+for k, v in PERSIST.items():
+    if k in st.session_state:
+        st.session_state[k] = st.session_state[k]
+    elif v is not None:
+        st.session_state[k] = v
+
+try:
+    A = C.load_analyzer()
+except Exception as exc:
+    st.error(f"Trained models not found in models/ ({exc}). Run the training scripts first.")
+    st.stop()
+
+VALID = C.validated(A)
+for k in C.SETTINGS:
+    st.session_state.setdefault(f"set_{k}", VALID[k])
+
+
+def _reset():
+    for k in C.SETTINGS:
+        st.session_state[f"set_{k}"] = VALID[k]
+
+
+# ----------------------------------------------------------------------------- sidebar
 with st.sidebar:
-    st.header("Input")
-    src = st.radio("Source", ["Demo recording", "Upload WAV"])
-    st.caption("Reliability threshold (Confident tier)"); tau = st.slider("Confident if reliability score >=", 0.2, 0.9, float(A.tau), 0.05)
-    A.tau = tau
-    st.markdown("**Tiers:** Confident = high reliability score. Low-confidence = detected but not trusted. No event = nothing detected. Inconclusive = recording quality too low; results withheld.")
+    C.sidebar_top = st.container()
+    st.divider()
+    changed = C.settings_changed(A)
+    with st.expander("Detector settings" + (" · custom" if changed else ""), icon=":material/tune:", expanded=bool(changed)):
+        st.slider("Reliability threshold (Confident tier)", 0.20, 0.90, step=0.05, key="set_tau",
+                  help="Events whose reliability score reaches this are called Confident. Higher = fewer events, more of them correct.")
+        st.slider("Start threshold", 0.30, 0.95, step=0.05, key="set_hi", help="Frame score that starts an event.")
+        st.slider("Continue threshold", 0.20, 0.95, step=0.05, key="set_lo", help="Frame score that keeps an event going. Must not exceed the start threshold.")
+        st.slider("Merge events closer than", 0.0, 1.5, step=0.1, key="set_merge", format="%.1f s")
+        st.slider("Quality gate: minimum SNR", 0.0, 25.0, step=0.5, key="set_snr_min", format="%.1f dB")
+        if st.session_state["set_lo"] > st.session_state["set_hi"]:
+            st.warning("Continue threshold is above the start threshold; it is treated as equal.")
+        if changed:
+            st.caption("Moved off the validated values (" + ", ".join(changed) + "). Reported results use the validated values.")
+        st.button("Reset to validated", icon=":material/restart_alt:", on_click=_reset, disabled=not changed, width="stretch")
+    st.caption(":material/info: Research prototype, not a diagnostic device.")
 
-audio, label, ref = None, "", []
-if src == "Upload WAV":
-    f = st.file_uploader("WAV file (max 20 MB, 120 s)", type=["wav"])
-    if f is not None:
-        if f.size > 20 * 1024 * 1024: st.error("File too large (max 20 MB).")
-        else:
-            try: audio, label = sio.load_audio(f.read()), f.name
-            except Exception as e: st.error(f"Could not read this file: {e}")
-else:
-    if demos:
-        d = st.selectbox("Clip", demos, format_func=lambda p: p.name.replace("demo_", "").replace(".wav", ""))
-        audio, label = sio.load_audio(str(d)), d.name
-        j = d.with_suffix(".json")
-        if j.exists(): meta = json.load(open(j)); ref = meta.get("reference_events_s", []); st.caption(f"Source: {meta.get('note','')}. Data: Khalifa et al. (2021), CC BY 4.0.")
-    else: st.info("No demo clips yet. Run: python scripts/make_demo_clips.py")
+# ----------------------------------------------------------------------------- header & pages
+st.markdown('<div class="sh-brand"><b>SWALLO<span>Hear</span></b>'
+            '<small>Reliability-aware swallowing-event analysis from neck-microphone audio · Team RIPARION</small></div>',
+            unsafe_allow_html=True)
+st.warning("**Research prototype, not a diagnostic device.** It detects swallowing-related acoustic events. It does not assess "
+           "dysphagia, aspiration or pneumonia, and must not be used to make care decisions.", icon=":material/health_and_safety:")
 
-if audio is not None:
-    r = A.analyze(audio["signal"], orig_nyquist=audio.get("orig_nyquist", 2000.0))
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Record status", r["status"]); c2.metric("Confident events", sum(e["tier"] == "Confident" for e in r["events"]))
-    c3.metric("Low-confidence", sum(e["tier"] == "Low-confidence" for e in r["events"])); c4.metric("Latency (s)", f"{r['latency_s']:.2f}")
-    if r["reason_codes"]: st.error("Result withheld. Quality issues: " + ", ".join(r["reason_codes"]) + ". Re-record in a quieter setting.")
-    show_ref = st.checkbox("Show reference (expert) labels", value=bool(ref)) if ref else False
-    x = audio["signal"]; t = np.arange(len(x)) / 4000
-    fig = go.Figure(go.Scatter(x=t[::2], y=x[::2], mode="lines", name="waveform", line=dict(width=1, color="#244668")))
-    col = {"Confident": "rgba(36,70,104,.30)", "Low-confidence": "rgba(229,133,99,.30)"}
-    for e in r["events"]: fig.add_vrect(x0=e["onset_s"], x1=e["offset_s"], fillcolor=col[e["tier"]], line_width=0, annotation_text="C" if e["tier"] == "Confident" else "L")
-    if show_ref:
-        for s, e in ref: fig.add_vrect(x0=s, x1=e, fillcolor="rgba(0,0,0,0)", line_width=1.5, line_dash="dot", line_color="#2a7f62")
-    fig.update_layout(height=320, margin=dict(l=10, r=10, t=10, b=10), xaxis_title="time (s)", yaxis_title="amplitude", showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
-    st.caption("Filled boxes = detected events (C = Confident, L = Low-confidence). Dotted green outlines = expert reference labels (demo clips only).")
-    q = r["quality"]; st.subheader("Signal quality"); st.write(f"Estimated SNR **{q['snr_db']:.1f} dB** (cut-off {A.snr_min:.1f} dB) | clipped {q['clip_frac']:.1%} | flat {q['flat_frac']:.1%} | duration {q['duration_s']:.1f} s | original bandwidth {audio.get('orig_nyquist', 2000):.0f} Hz")
-    rows = r["events"] if r["events"] else r["withheld_candidates"]
-    if rows:
-        df = pd.DataFrame(rows).round(3); st.subheader("Events" if r["events"] else "Candidates (withheld because quality is too low)"); st.dataframe(df)
-        n = len(df); dur = float(df.duration_ms.median()) if n else 0
-        st.write(f"Session summary: {n} events, {n / max(q['duration_s'] / 60, 1e-9):.1f} per minute, median duration {dur:.0f} ms.")
-        if r["events"]:
-            st.download_button("Export CSV", df.to_csv(index=False), "swallohear_events.csv", "text/csv")
-            st.download_button("Export JSON", json.dumps(dict(input=label, status=r["status"], tau=A.tau, snr_min=A.snr_min, events=r["events"], quality=q), indent=1), "swallohear_session.json", "application/json")
-    elif not r["reason_codes"]: st.info("No event detected. This does not prove no swallow occurred.")
+pg = st.navigation([
+    st.Page(analyze.render, title="Analyze", icon=":material/graphic_eq:", url_path="analyze", default=True),
+    st.Page(batch.render, title="Batch", icon=":material/library_music:", url_path="batch"),
+    st.Page(about.render, title="Method & results", icon=":material/science:", url_path="method"),
+], position="top")
+pg.run()
