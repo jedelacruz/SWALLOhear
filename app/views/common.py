@@ -16,8 +16,17 @@ from swallohear import TARGET_FS as FS, synth, metrics
 from swallohear.final import Analyzer
 
 # ----------------------------------------------------------------------------- look & words
-TEAL, AMBER, SLATE, GREEN, RED, INK = "#1B7F7A", "#E0A458", "#7A8A94", "#2E9E6B", "#C8553D", "#244668"
+TEAL, AMBER, SLATE, GREEN, RED = "#1B7F7A", "#E0A458", "#7A8A94", "#2E9E6B", "#C8553D"
 TIER_COLOR = {"Confident": TEAL, "Low-confidence": AMBER}
+
+
+def is_dark() -> bool:
+    return st.session_state.get("theme_choice") == "dark"
+
+
+def ink() -> str:
+    """Line colour for waveforms and spectra that reads on the current background."""
+    return "#C9D6E3" if is_dark() else "#244668"
 STATUS = {  # colour, icon, headline, explanation
     "Analyzable":   (TEAL,  "✓", "Events detected",
                      "The recording passed the quality gate and the detector found swallowing-related events."),
@@ -176,14 +185,17 @@ def _spec(x: np.ndarray, max_cols: int = 1200):
     return f, t, S, lo, hi
 
 
-def timeline(x, r, events, *, faded=False, show_spec=True, ref=(), show_ref=False, selected=None, hi=0.7, lo=0.65, height=None):
+def timeline(x, r, events, *, faded=False, show_spec=True, ref=(), show_ref=False, selected=None, hi=0.7, lo=0.65, height=None,
+             line=None, for_print=False):
+    """`line` overrides the waveform colour; `for_print` uses SVG instead of WebGL, which browsers often leave blank when printing."""
     rows = 3 if show_spec and len(x) >= 256 else 2
     titles = ("Waveform", "Spectrogram (0–2 kHz)", "Detector score per 16 ms frame") if rows == 3 else ("Waveform", "Detector score per 16 ms frame")
     heights = [0.34, 0.33, 0.33] if rows == 3 else [0.55, 0.45]
     fig = make_subplots(rows=rows, cols=1, shared_xaxes=True, vertical_spacing=0.06, row_heights=heights, subplot_titles=titles)
 
-    tw, yw = _envelope(x)
-    fig.add_trace(go.Scattergl(x=tw, y=yw, mode="lines", line=dict(width=0.8, color=INK), hoverinfo="skip", name="waveform"), row=1, col=1)
+    tw, yw = _envelope(x, max_pts=2500 if for_print else 5000)
+    trace = go.Scatter if for_print else go.Scattergl
+    fig.add_trace(trace(x=tw, y=yw, mode="lines", line=dict(width=0.8, color=line or ink()), hoverinfo="skip", name="waveform"), row=1, col=1)
     if rows == 3:
         f, ts, S, zlo, zhi = _spec(x)
         fig.add_trace(go.Heatmap(x=ts, y=f, z=S, zmin=zlo, zmax=zhi, colorscale="Viridis", showscale=False,
@@ -235,7 +247,7 @@ def event_zoom(x, r, e, pad=1.0):
     seg = x[int(t0 * FS): int(t1 * FS)]
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.08, row_heights=[0.55, 0.45])
     tw, yw = _envelope(seg, t0, 3000)
-    fig.add_trace(go.Scattergl(x=tw, y=yw, mode="lines", line=dict(width=0.8, color=INK), hoverinfo="skip"), row=1, col=1)
+    fig.add_trace(go.Scattergl(x=tw, y=yw, mode="lines", line=dict(width=0.8, color=ink()), hoverinfo="skip"), row=1, col=1)
     ft, fp = np.asarray(r["frame_t"]), np.asarray(r["frame_prob"]); m = (ft >= t0) & (ft <= t1)
     fig.add_trace(go.Scatter(x=ft[m], y=fp[m], mode="lines", line=dict(width=1.6, color=SLATE),
                              hovertemplate="%{x:.2f} s · %{y:.2f}<extra></extra>"), row=2, col=1)
@@ -252,7 +264,7 @@ def gauge(value: float, tau: float, tier: str):
         mode="gauge+number", value=value, number=dict(valueformat=".2f", font=dict(size=34)),
         gauge=dict(axis=dict(range=[0, 1], tickvals=[0, tau, 1], tickformat=".2f"), bar=dict(color=TIER_COLOR[tier], thickness=0.35),
                    steps=[dict(range=[0, tau], color="rgba(224,164,88,.15)"), dict(range=[tau, 1], color="rgba(27,127,122,.15)")],
-                   threshold=dict(line=dict(color=INK, width=3), thickness=0.8, value=tau))))
+                   threshold=dict(line=dict(color=ink(), width=3), thickness=0.8, value=tau))))
     fig.update_layout(height=190, margin=dict(l=34, r=34, t=24, b=0))
     return fig
 
@@ -271,3 +283,172 @@ def lanes(events, ref, pairs, matched_ref, duration):
     fig.update_xaxes(range=[0, duration], title_text="time (s)")
     fig.update_layout(height=200, margin=dict(l=10, r=10, t=10, b=10), showlegend=False)
     return fig
+
+
+# ----------------------------------------------------------------------------- explanations
+def explain(features) -> dict | None:
+    """Exact per-feature contributions (log-odds) of the reliability model for one event.
+    The model is StandardScaler -> LogisticRegression, so logit = intercept + sum(coef * standardised value)."""
+    try:
+        pipe = load_analyzer().rel
+        sc, lr = pipe.steps[0][1], pipe.steps[-1][1]
+        z = (np.asarray(features, float) - sc.mean_) / sc.scale_
+        return dict(intercept=float(lr.intercept_[0]), contrib=(lr.coef_[0] * z).tolist(), typical=sc.mean_.tolist())
+    except Exception:
+        return None
+
+
+def top_reasons(ex: dict | None, k: int = 2) -> tuple[list[str], list[str]]:
+    if not ex:
+        return [], []
+    c = np.asarray(ex["contrib"]); order = np.argsort(-np.abs(c))
+    up = [FEATURES[i][0] for i in order if c[i] > 0.05][:k]
+    down = [FEATURES[i][0] for i in order if c[i] < -0.05][:k]
+    return up, down
+
+
+def explain_fig(ex: dict, tau: float):
+    c = np.asarray(ex["contrib"]); order = list(np.argsort(-np.abs(c)))
+    logit = ex["intercept"] + float(c.sum()); p = 1 / (1 + np.exp(-logit))
+    fig = go.Figure(go.Waterfall(
+        orientation="h", measure=["absolute"] + ["relative"] * len(order) + ["total"],
+        y=["Average event"] + [FEATURES[i][0] for i in order] + ["This event"],
+        x=[ex["intercept"]] + [float(c[i]) for i in order] + [0],
+        text=[f"{ex['intercept']:+.2f}"] + [f"{c[i]:+.2f}" for i in order] + [f"{logit:+.2f} → {p:.2f}"], textposition="auto", cliponaxis=False,
+        increasing=dict(marker=dict(color=TEAL)), decreasing=dict(marker=dict(color=AMBER)), totals=dict(marker=dict(color=SLATE)),
+        connector=dict(line=dict(color="rgba(128,128,128,.35)", width=1)),
+        hovertemplate="%{y}: %{x:+.2f}<extra></extra>"))
+    t = float(np.log(tau / (1 - tau))) if 0 < tau < 1 else 0.0
+    fig.add_vline(x=t, line=dict(color=RED, dash="dash"), annotation_text=f"threshold {tau:.2f}", annotation_position="top")
+    fig.update_yaxes(autorange="reversed")
+    fig.update_layout(height=360, margin=dict(l=10, r=40, t=30, b=10), xaxis_title="← less reliable   ·   evidence (log-odds)   ·   more reliable →",
+                      showlegend=False)
+    return fig
+
+
+# ----------------------------------------------------------------------------- rhythm
+def rhythm(events: list[dict], duration: float) -> dict:
+    ev = sorted(events, key=lambda e: e["onset_s"]); on = np.array([e["onset_s"] for e in ev]); n = len(ev)
+    iei = np.diff(on)
+    gaps = ([ev[0]["onset_s"]] + [b["onset_s"] - a["offset_s"] for a, b in zip(ev, ev[1:])] + [duration - ev[-1]["offset_s"]]) if n else [duration]
+    cv = float(iei.std() / iei.mean()) if len(iei) > 1 and iei.mean() > 0 else None
+    return dict(n=n, rate=n / max(duration / 60, 1e-9), iei=iei.tolist(), onsets=on.tolist(),
+                mean_iei=float(iei.mean()) if len(iei) else None, median_iei=float(np.median(iei)) if len(iei) else None,
+                cv=cv, regularity=None if cv is None else ("steady" if cv < 0.25 else "moderate" if cv < 0.5 else "irregular"),
+                longest_gap=float(max(gaps)))
+
+
+def rhythm_figs(events: list[dict], duration: float):
+    ev = sorted(events, key=lambda e: e["onset_s"])
+    cum = go.Figure()
+    for name, sub, colour in (("All events", ev, SLATE), ("Confident only", [e for e in ev if e["tier"] == "Confident"], TEAL)):
+        xs = [0.0] + [e["onset_s"] for e in sub] + [duration]; ys = [0] + list(range(1, len(sub) + 1)) + [len(sub)]
+        cum.add_trace(go.Scatter(x=xs, y=ys, mode="lines", line=dict(shape="hv", width=2.5, color=colour), name=name,
+                                 hovertemplate="%{x:.1f} s · %{y} events<extra></extra>"))
+    cum.update_layout(height=260, margin=dict(l=10, r=10, t=10, b=10), xaxis_title="time (s)", yaxis_title="events so far",
+                      legend=dict(orientation="h", y=-0.3))
+    iei = np.diff([e["onset_s"] for e in ev])
+    bars = go.Figure(go.Bar(x=[f"{i + 1}→{i + 2}" for i in range(len(iei))], y=iei, marker_color=TEAL,
+                            hovertemplate="events %{x}: %{y:.1f} s apart<extra></extra>"))
+    if len(iei):
+        bars.add_hline(y=float(iei.mean()), line=dict(dash="dash", color=SLATE), annotation_text=f"mean {iei.mean():.1f} s")
+    bars.update_layout(height=260, margin=dict(l=10, r=10, t=10, b=10), xaxis_title="consecutive events", yaxis_title="seconds apart")
+    return cum, bars
+
+
+# ----------------------------------------------------------------------------- quality checks
+def quality_checks(q: dict, nyq: float, snr_min: float) -> list[tuple[str, str, str, bool]]:
+    return [
+        ("Signal-to-noise", f"{q['snr_db']:.1f} dB", f"≥ {snr_min:.1f} dB", q["snr_db"] >= snr_min),
+        ("Clipped samples", f"{q['clip_frac']:.2%}", "≤ 2%", q["clip_frac"] <= 0.02),
+        ("Flat (dropout) samples", f"{q['flat_frac']:.2%}", "≤ 30%", q["flat_frac"] <= 0.30),
+        ("Original bandwidth", f"{nyq:.0f} Hz", "≥ 1000 Hz", nyq >= 1000),
+        ("Duration", f"{q['duration_s']:.1f} s", "1–120 s", 1.0 <= q["duration_s"] <= 120),
+    ]
+
+
+# ----------------------------------------------------------------------------- printable report
+def build_report(*, label, r, x, nyq, cfg, changed, stress, ref, notes, explanations) -> str:
+    """Self-contained HTML report (plotly.js inlined so it works offline). Uses no Streamlit calls,
+    so it can run in the download button's background thread."""
+    import html, time as _t
+    e_ = html.escape
+    q, events, withheld = r["quality"], r["events"], r["withheld_candidates"]
+    shown, faded = (events or withheld), not events
+    colour, _icon, head, text = STATUS[r["status"]]
+    rh = rhythm(shown, q["duration_s"])
+
+    def fig_html(fig, first=False):
+        fig.update_layout(template="plotly_white", paper_bgcolor="white", plot_bgcolor="white", font=dict(color="#1f2a30"))
+        return fig.to_html(full_html=False, include_plotlyjs=first, config={"displayModeBar": False, "staticPlot": False})
+
+    tl = timeline(x, r, shown, faded=faded, show_spec=True, ref=ref, show_ref=bool(ref), hi=cfg["hi"], lo=cfg["lo"],
+                  height=520, line="#244668", for_print=True)
+    figs = [("Timeline", fig_html(tl, first=True))]
+    if len(shown) >= 2:
+        cum, _ = rhythm_figs(shown, q["duration_s"])
+        figs.append(("Events over time", fig_html(cum)))
+
+    rows = ""
+    for i, ev in enumerate(shown):
+        up, down = top_reasons(explanations[i] if i < len(explanations) else None)
+        call = notes.get(f"{label}|{ev['onset_s']:.2f}", "")
+        rows += (f"<tr><td>{i + 1}</td><td>{ev['onset_s']:.2f}–{ev['offset_s']:.2f} s</td><td>{ev['duration_ms']:.0f} ms</td>"
+                 f"<td><span class=bar><i style='width:{ev['reliability'] * 100:.0f}%;background:{TIER_COLOR[ev['tier']]}'></i></span> {ev['reliability']:.2f}</td>"
+                 f"<td style='color:{TIER_COLOR[ev['tier']]};font-weight:600'>{ev['tier']}</td>"
+                 f"<td>{e_(', '.join(up)) or '–'}</td><td>{e_(', '.join(down)) or '–'}</td><td>{e_(call) or '–'}</td></tr>")
+    checks = "".join(f"<tr><td>{'✔' if ok else '✘'}</td><td>{n}</td><td>{v}</td><td>{lim}</td></tr>"
+                     for n, v, lim, ok in quality_checks(q, nyq, cfg["snr_min"]))
+    settings = "".join(f"<tr><td>{k}</td><td>{v:.3g}</td><td>{'changed' if k in changed else 'validated'}</td></tr>" for k, v in cfg.items())
+    expert = ""
+    if ref:
+        s, _, _ = match(shown, ref)
+        expert = (f"<h2>Agreement with expert labels</h2><p>{s['tp']} matched · {s['fp']} false detections · {s['fn']} missed · "
+                  f"precision {s['precision']:.2f} · recall {s['recall']:.2f} · F1 {s['f1']:.2f}. "
+                  "A detection counts as matched when it overlaps a labelled swallow by at least half. One clip proves nothing.</p>")
+    rhythm_txt = (f"{rh['n']} events, {rh['rate']:.1f} per minute"
+                  + (f", mean interval {rh['mean_iei']:.1f} s" if rh["mean_iei"] is not None else "")
+                  + (f", {rh['regularity']} rhythm (CV {rh['cv']:.2f})" if rh["cv"] is not None else "")
+                  + f", longest quiet gap {rh['longest_gap']:.1f} s.")
+
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SWALLOHear report · {e_(label)}</title>
+<style>
+body{{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#1f2a30;background:#fff;max-width:960px;margin:2rem auto;padding:0 16px;line-height:1.45}}
+h1{{margin:0;font-size:1.7rem}} h1 span{{color:{TEAL}}} h2{{font-size:1.1rem;margin:1.6rem 0 .5rem;border-bottom:1px solid #dde3e0;padding-bottom:.25rem}}
+.meta{{color:#6a7780;font-size:.9rem}} .warn{{background:#fff8e1;border:1px solid #f0d58a;border-radius:8px;padding:.6rem .9rem;font-size:.9rem;margin:1rem 0}}
+.verdict{{border-left:6px solid {colour};background:color-mix(in srgb,{colour} 10%,white);border-radius:8px;padding:.8rem 1rem}}
+.verdict b{{font-size:1.2rem}} .grid{{display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;margin:1rem 0}}
+.card{{border:1px solid #dde3e0;border-radius:8px;padding:.5rem .7rem}} .card small{{color:#6a7780;display:block}} .card b{{font-size:1.3rem}}
+table{{width:100%;border-collapse:collapse;font-size:.88rem}} th,td{{text-align:left;padding:.35rem .5rem;border-bottom:1px solid #eef1ef;vertical-align:top}}
+th{{color:#6a7780;font-weight:600}} .bar{{display:inline-block;width:60px;height:8px;background:#eef1ef;border-radius:4px;vertical-align:middle}}
+.bar i{{display:block;height:8px;border-radius:4px}} .two{{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}}
+.fig{{break-inside:avoid}} footer{{color:#6a7780;font-size:.8rem;margin-top:2rem}}
+@media print{{body{{margin:0}} .noprint{{display:none}} h2{{break-after:avoid}} table,.fig,.verdict,.grid{{break-inside:avoid}}}}
+@media (max-width:640px){{.grid{{grid-template-columns:repeat(2,1fr)}} .two{{grid-template-columns:1fr}}}}
+</style></head><body>
+<p class="noprint meta">Tip: press Ctrl+P (or ⌘P) and choose "Save as PDF" to keep a PDF copy.</p>
+<h1>SWALLO<span>Hear</span> analysis report</h1>
+<div class="meta">{e_(label)} · {q['duration_s']:.1f} s · generated {_t.strftime('%Y-%m-%d %H:%M')}{(' · stress test: ' + e_(stress)) if stress else ''}</div>
+<div class="warn"><b>Research prototype, not a diagnostic device.</b> It detects swallowing-related acoustic events. It does not assess dysphagia,
+aspiration or pneumonia, and must not be used to make care decisions.</div>
+<div class="verdict"><b>{head}</b><br>{text}{('<br><small>Reasons: ' + e_(', '.join(r['reason_codes'])) + '</small>') if r['reason_codes'] else ''}</div>
+<div class="grid">
+<div class="card"><small>Confident</small><b>{sum(ev['tier'] == 'Confident' for ev in events)}</b></div>
+<div class="card"><small>Low-confidence</small><b>{sum(ev['tier'] == 'Low-confidence' for ev in events)}</b></div>
+<div class="card"><small>Withheld</small><b>{len(withheld)}</b></div>
+<div class="card"><small>Estimated SNR</small><b>{q['snr_db']:.1f} dB</b></div>
+<div class="card"><small>Event rate</small><b>{rh['rate']:.1f}/min</b></div></div>
+{''.join(f'<h2>{t}</h2><div class="fig">{h}</div>' for t, h in figs)}
+<h2>Events{' (withheld, shown for inspection only)' if faded and shown else ''}</h2>
+{'<table><tr><th>#</th><th>Time</th><th>Length</th><th>Reliability</th><th>Tier</th><th>Raised by</th><th>Lowered by</th><th>Reviewer call</th></tr>' + rows + '</table>' if shown else '<p>No events.</p>'}
+<p class="meta">"Raised by" / "Lowered by" are the measurements that pushed the reliability model's score up or down most for that event.</p>
+<h2>Swallow rhythm</h2><p>{rhythm_txt}</p>
+{expert}
+<div class="two"><div><h2>Quality gate</h2><table><tr><th></th><th>Check</th><th>Value</th><th>Limit</th></tr>{checks}</table></div>
+<div><h2>Detector settings</h2><table><tr><th>Setting</th><th>Value</th><th></th></tr>{settings}</table></div></div>
+<h2>Limits</h2><p>Accuracy is modest (event F1 about 0.49 on 27 held-out participants) and nowhere near clinical standard. Noise tests use synthetic
+noise, not real rooms. Results come from one public dataset (Khalifa et al., 2021, CC BY 4.0) and have not been validated on Philippine data,
+phones or low-cost microphones.</p>
+<footer>SWALLOHear · Team RIPARION · research use only</footer>
+</body></html>"""

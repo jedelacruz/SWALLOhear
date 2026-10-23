@@ -6,10 +6,19 @@ Uses the trained noise-augmented Random Forest + learned event-reliability model
 + signal-quality gate (src/swallohear/final.py). Pages live in app/views/.
 """
 import streamlit as st
+from streamlit import config as st_config
 
-from views import common as C, analyze, batch, about
+from views import common as C, analyze, batch, compare, about
 
 st.set_page_config(page_title="SWALLOHear", page_icon=":material/graphic_eq:", layout="wide")
+
+# Streamlit has no API for an in-app theme switch. The browser takes the theme from each run's
+# session message, so set this session's choice on the server and rerun once when it differs.
+# (On a shared server, two viewers with different choices each get one extra rerun.)
+_want = "dark" if C.is_dark() else "light"
+if st_config.get_option("theme.base") != _want:
+    st_config.set_option("theme.base", _want)
+    st.rerun()
 
 st.markdown("""<style>
 .block-container {padding-top:3.2rem; max-width:1440px;}
@@ -30,8 +39,10 @@ st.markdown("""<style>
 
 # Page widgets are removed from session state when their page is not shown; re-asserting the keys keeps
 # choices across page switches. Defaults live here so widgets never get both a default and a state value.
-PERSIST = dict(src=None, demo_pick=None, syn_n=4, syn_dur=20, syn_seed=0, noise_on=False, noise_kind=C.NOISE_KINDS[0],
-               noise_snr=10, clip_on=False, spec_on=True, sweep_kind=C.NOISE_KINDS[0])
+PERSIST = dict(theme_choice="light", src=None, demo_pick=None, syn_n=4, syn_dur=20, syn_seed=0, noise_on=False, noise_kind=C.NOISE_KINDS[0],
+               noise_snr=10, clip_on=False, spec_on=True, sweep_kind=C.NOISE_KINDS[0], rh_conf=False,
+               cmp_a_src=None, cmp_b_src=None, cmp_a_noise=None, cmp_b_noise=None, cmp_a_kind=None, cmp_b_kind=None,
+               cmp_a_snr=None, cmp_b_snr=None, cmp_spec=False)
 for k, v in PERSIST.items():
     if k in st.session_state:
         st.session_state[k] = st.session_state[k]
@@ -74,14 +85,20 @@ with st.sidebar:
     st.caption(":material/info: Research prototype, not a diagnostic device.")
 
 # ----------------------------------------------------------------------------- header & pages
-st.markdown('<div class="sh-brand"><b>SWALLO<span>Hear</span></b>'
-            '<small>Reliability-aware swallowing-event analysis from neck-microphone audio · Team RIPARION</small></div>',
-            unsafe_allow_html=True)
+brand, mode = st.columns([6, 1], vertical_alignment="center")
+brand.markdown('<div class="sh-brand"><b>SWALLO<span>Hear</span></b>'
+               '<small>Reliability-aware swallowing-event analysis from neck-microphone audio · Team RIPARION</small></div>',
+               unsafe_allow_html=True)
+with mode:
+    st.segmented_control("Theme", ["light", "dark"], key="theme_choice", required=True, label_visibility="collapsed",
+                         format_func=lambda m: ":material/light_mode:" if m == "light" else ":material/dark_mode:",
+                         help="Switch between light and dark mode.", width="stretch")
 st.warning("**Research prototype, not a diagnostic device.** It detects swallowing-related acoustic events. It does not assess "
            "dysphagia, aspiration or pneumonia, and must not be used to make care decisions.", icon=":material/health_and_safety:")
 
 pg = st.navigation([
     st.Page(analyze.render, title="Analyze", icon=":material/graphic_eq:", url_path="analyze", default=True),
+    st.Page(compare.render, title="Compare", icon=":material/compare:", url_path="compare"),
     st.Page(batch.render, title="Batch", icon=":material/library_music:", url_path="batch"),
     st.Page(about.render, title="Method & results", icon=":material/science:", url_path="method"),
 ], position="top")

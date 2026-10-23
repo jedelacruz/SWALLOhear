@@ -22,9 +22,11 @@ def _source_panel(clips):
     icons = {"Demo": ":material/headphones:", "Upload": ":material/upload:", "Record": ":material/mic:", "Synthetic": ":material/science:"}
     if st.session_state.get("src") not in options:
         st.session_state["src"] = options[0]
-    src = st.segmented_control("Source", options, key="src", label_visibility="collapsed",
-                               format_func=lambda o: f"{icons[o]} {o}") or st.session_state.get("_src_last", options[0])
-    st.session_state["_src_last"] = src
+    src = st.session_state["src"]
+    grid = st.columns(2, gap="small")  # a 2x2 grid of equal-width buttons
+    for i, o in enumerate(options):
+        grid[i % 2].button(o, icon=icons[o], key=f"src_{o}", type="primary" if o == src else "secondary", width="stretch",
+                           on_click=st.session_state.__setitem__, args=("src", o))
 
     audio, label, ref, note = None, "", [], ""
     if src == "Demo":
@@ -175,6 +177,11 @@ def _event_card(x, r, shown, label, cfg):
             st.plotly_chart(C.gauge(e["reliability"], cfg["tau"], e["tier"]), config={"displayModeBar": False},
                             width="stretch", key=f"g_{i}_{e['onset_s']:.2f}")
             st.caption(f"Reliability score. The marker is the threshold ({cfg['tau']:.2f}). Raw detector confidence: {e['model_confidence']:.2f}.")
+            up, down = C.top_reasons(C.explain(e["features"]))
+            if up or down:
+                st.markdown((f":green[:material/arrow_upward:] {', '.join(up)}  \n" if up else "")
+                            + (f":orange[:material/arrow_downward:] {', '.join(down)}" if down else ""),
+                            help="What pushed this event's reliability score up or down most. Full breakdown on the Events tab.")
         with c3:
             st.plotly_chart(C.event_zoom(x, r, e), config={"displayModeBar": False}, width="stretch", key=f"z_{i}_{e['onset_s']:.2f}")
 
@@ -204,13 +211,26 @@ def _events_tab(shown, faded, label, sig, cfg, payload):
     st.caption("Select a row to make it the inspected event on the Timeline tab and below.")
 
     i = min(st.session_state.get("sel_event", 0), len(shown) - 1); e = shown[i]
-    left, right = st.columns([1.1, 1])
-    with left:
-        st.markdown(f"##### What the reliability model saw for event {i + 1}")
-        for (name, help_, fmt), v in zip(C.FEATURES, e["features"]):
-            a, b = st.columns([2, 1]); a.markdown(f"{name}", help=help_); b.markdown(f"**{fmt.format(v)}**")
-    with right:
-        st.markdown("##### Raw confidence vs reliability")
+    ex = C.explain(e["features"])
+    st.markdown(f"##### Why event {i + 1} scored {e['reliability']:.2f}")
+    if ex:
+        left, right = st.columns([1.35, 1])
+        with left:
+            st.plotly_chart(C.explain_fig(ex, cfg["tau"]), config={"displayModeBar": False}, width="stretch", key=f"why_{key}_{i}")
+        with right:
+            exp_rows = [dict(measurement=name, value=fmt.format(v), typical=fmt.format(t), effect=round(c, 2))
+                        for (name, _h, fmt), v, t, c in zip(C.FEATURES, e["features"], ex["typical"], ex["contrib"])]
+            st.dataframe(sorted(exp_rows, key=lambda d: -abs(d["effect"])), hide_index=True, width="stretch", column_config={
+                "measurement": "Measurement", "value": "This event", "typical": "Typical event",
+                "effect": st.column_config.NumberColumn("Effect", format="%+.2f", help="Push on the score in log-odds: positive = more reliable.")})
+            up, down = C.top_reasons(ex)
+            st.caption("The reliability model starts from an average event and adds or subtracts evidence for each measurement. "
+                       + (f"Here **{up[0].lower()}** helped most" if up else "Nothing pushed it up much")
+                       + (f" and **{down[0].lower()}** hurt most." if down else "."))
+    else:
+        st.info("The reliability model's structure is not a scaler + logistic regression, so it can't be broken down exactly.")
+
+    with st.expander("Raw detector confidence vs reliability", icon=":material/scatter_plot:"):
         fig = go.Figure(go.Scatter(
             x=[s["model_confidence"] for s in shown], y=[s["reliability"] for s in shown], mode="markers+text",
             text=[str(k + 1) for k in range(len(shown))], textposition="top center",
@@ -232,6 +252,37 @@ def _events_tab(shown, faded, label, sig, cfg, payload):
     ann = [r_ for r_ in rows if r_["your_call"]]
     d3.download_button(f"My annotations ({len(ann)})", C.to_csv(ann, cols), f"{label}_annotations.csv", "text/csv",
                        icon=":material/rate_review:", width="stretch", disabled=not ann)
+
+
+def _rhythm_tab(shown, faded, duration):
+    if len(shown) < 2:
+        st.info("Rhythm needs at least two events. Try a longer recording, or the Synthetic source with 60 s and 8–10 bursts.")
+        return
+    if faded:
+        st.warning("The result was withheld; rhythm below uses the withheld candidates.")
+    only_conf = st.toggle("Confident events only", key="rh_conf")
+    evs = [e for e in shown if e["tier"] == "Confident"] if only_conf else shown
+    rh = C.rhythm(evs, duration)
+    c = st.columns(5)
+    c[0].metric("Events", rh["n"], border=True)
+    c[1].metric("Rate", f"{rh['rate']:.1f}/min", border=True)
+    c[2].metric("Mean interval", f"{rh['mean_iei']:.1f} s" if rh["mean_iei"] is not None else "–",
+                help="Average time from one event's onset to the next.", border=True)
+    c[3].metric("Regularity", (rh["regularity"] or "–").capitalize(),
+                f"CV {rh['cv']:.2f}" if rh["cv"] is not None else None, delta_color="off",
+                help="Spread of the intervals (coefficient of variation): under 0.25 steady, 0.25–0.5 moderate, over 0.5 irregular.", border=True)
+    c[4].metric("Longest quiet gap", f"{rh['longest_gap']:.1f} s", help="Longest stretch with no event, including the start and end.", border=True)
+    cum, bars = C.rhythm_figs(evs if len(evs) >= 2 else shown, duration)
+    a, b = st.columns(2)
+    with a:
+        st.markdown("##### Events over time")
+        st.plotly_chart(cum, config=C.CHART_CFG, width="stretch", key="rh_cum")
+        st.caption("A steady slope means steady swallowing; flat stretches are pauses.")
+    with b:
+        st.markdown("##### Time between consecutive events")
+        st.plotly_chart(bars, config=C.CHART_CFG, width="stretch", key="rh_bars")
+        st.caption("Similar bar heights mean a regular rhythm.")
+    st.caption("Rhythm is descriptive only. Short clips give few intervals, and missed or false detections distort these numbers.")
 
 
 def _robustness_tab(x0, nyq, ref, base_sig, cfg):
@@ -266,7 +317,7 @@ def _robustness_tab(x0, nyq, ref, base_sig, cfg):
     fig.add_bar(x=lv, y=[o["low"] for o in out], name="Low-confidence", marker_color=C.AMBER)
     fig.add_bar(x=lv, y=[o["withheld"] for o in out], name="Withheld", marker_color="rgba(122,138,148,.45)")
     fig.add_trace(go.Scatter(x=lv, y=[o["est_snr"] for o in out], name="Estimated SNR", yaxis="y2", mode="lines+markers",
-                             line=dict(color=C.INK, width=2)))
+                             line=dict(color=C.ink(), width=2)))
     fig.add_trace(go.Scatter(x=lv, y=[cfg["snr_min"]] * len(lv), name="Quality gate", yaxis="y2", mode="lines",
                              line=dict(color=C.RED, dash="dash")))
     fig.update_layout(barmode="stack", height=360, margin=dict(l=10, r=10, t=10, b=10), xaxis_title="added noise",
@@ -281,13 +332,7 @@ def _robustness_tab(x0, nyq, ref, base_sig, cfg):
 
 
 def _quality_tab(xr, s, q, nyq, cfg, stress_note):
-    checks = [
-        ("Signal-to-noise", f"{q['snr_db']:.1f} dB", f"≥ {cfg['snr_min']:.1f} dB", q["snr_db"] >= cfg["snr_min"]),
-        ("Clipped samples", f"{q['clip_frac']:.2%}", "≤ 2%", q["clip_frac"] <= 0.02),
-        ("Flat (dropout) samples", f"{q['flat_frac']:.2%}", "≤ 30%", q["flat_frac"] <= 0.30),
-        ("Original bandwidth", f"{nyq:.0f} Hz", "≥ 1000 Hz", nyq >= 1000),
-        ("Duration", f"{q['duration_s']:.1f} s", "1–120 s", 1.0 <= q["duration_s"] <= 120),
-    ]
+    checks = C.quality_checks(q, nyq, cfg["snr_min"])
     left, right = st.columns([1, 1.3])
     with left:
         st.markdown("##### Quality gate")
@@ -309,7 +354,7 @@ def _quality_tab(xr, s, q, nyq, cfg, stress_note):
         st.plotly_chart(fig, config={"displayModeBar": False}, width="stretch", key="q_hist")
         st.caption(f"SNR = peaks − floor = {peak - floor:.1f} dB. The {cfg['snr_min']:.1f} dB gate is roughly the worst clean recording seen in validation.")
         f, P = welch(xr, fs=C.FS, nperseg=min(1024, len(xr)))
-        fig2 = go.Figure(go.Scatter(x=f, y=10 * np.log10(P + 1e-15), mode="lines", line=dict(color=C.INK, width=1.4),
+        fig2 = go.Figure(go.Scatter(x=f, y=10 * np.log10(P + 1e-15), mode="lines", line=dict(color=C.ink(), width=1.4),
                                     hovertemplate="%{x:.0f} Hz · %{y:.0f} dB<extra></extra>"))
         fig2.add_vrect(x0=20, x1=1800, fillcolor=C.TEAL, opacity=0.07, line_width=0, annotation_text="analysis band", annotation_position="top left")
         fig2.update_layout(height=210, margin=dict(l=10, r=10, t=10, b=10), xaxis_title="frequency (Hz)", yaxis_title="power (dB)")
@@ -406,13 +451,19 @@ def render():
                          settings="custom: " + ", ".join(changed) if changed else "validated"))
 
     # header
-    h1, h2 = st.columns([3, 2], vertical_alignment="bottom")
+    h1, h2, h3 = st.columns([2.4, 2, 1], vertical_alignment="bottom")
     h1.markdown(f"### {label}")
     with h2:
         st.markdown(" ".join([f":gray-badge[:material/timer: {q['duration_s']:.1f} s]",
                               f":gray-badge[:material/graphic_eq: {audio.get('orig_fs', 4000) / 1000:.1f} kHz source]"]
                              + ([f":orange-badge[:material/bolt: {stress_note}]"] if stress_note else [])
                              + ([f":violet-badge[:material/tune: custom settings]"] if changed else [])))
+    # Everything the report needs is captured now: the callable runs on a background thread without Streamlit context.
+    rep = dict(label=label, r=r, x=x, nyq=nyq, cfg=cfg, changed=changed, stress=stress_note, ref=ref,
+               notes=dict(st.session_state.get("notes", {})), explanations=[C.explain(e["features"]) for e in shown])
+    h3.download_button("Report", lambda: C.build_report(**rep), f"{label}_report.html", "text/html", icon=":material/description:",
+                       help="Printable HTML report: verdict, timeline, events with reasons, rhythm, quality and limits. "
+                            "Open it and press Ctrl+P to save as PDF.", width="stretch", on_click="ignore")
     C.verdict(r["status"], r["reason_codes"], subtitle=f"Note: {note}" if note else "")
     _metrics(r, shown, q, cfg)
     st.write("")
@@ -420,17 +471,20 @@ def render():
     payload = dict(input=label, status=r["status"], reason_codes=r["reason_codes"], settings=cfg, stress_test=stress_note or None,
                    events=r["events"], withheld_candidates=r["withheld_candidates"], quality=q,
                    annotations={k: v for k, v in st.session_state.get("notes", {}).items() if k.startswith(label + "|")})
-    tabs = st.tabs([":material/timeline: Timeline", f":material/list: Events ({len(shown)})", ":material/waves: Robustness lab",
-                    ":material/monitor_heart: Signal quality", ":material/fact_check: Expert comparison", ":material/history: Session"])
+    tabs = st.tabs([":material/timeline: Timeline", f":material/list: Events ({len(shown)})", ":material/monitor_heart: Rhythm",
+                    ":material/waves: Robustness lab", ":material/verified_user: Signal quality", ":material/fact_check: Expert comparison",
+                    ":material/history: Session"])
     with tabs[0]:
         _timeline_tab(x, r, shown, faded, ref, label, sig, cfg)
     with tabs[1]:
         _events_tab(shown, faded, label, sig, cfg, payload)
     with tabs[2]:
-        _robustness_tab(x0, nyq, ref, base_sig, cfg)
+        _rhythm_tab(shown, faded, q["duration_s"])
     with tabs[3]:
-        _quality_tab(x, s, q, nyq, cfg, stress_note)
+        _robustness_tab(x0, nyq, ref, base_sig, cfg)
     with tabs[4]:
-        _expert_tab(shown, faded, ref, q["duration_s"])
+        _quality_tab(x, s, q, nyq, cfg, stress_note)
     with tabs[5]:
+        _expert_tab(shown, faded, ref, q["duration_s"])
+    with tabs[6]:
         _session_tab()
