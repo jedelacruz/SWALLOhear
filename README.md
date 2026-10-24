@@ -126,41 +126,30 @@ the [web app guide](docs/APP_GUIDE.md) and the [mobile app guide](docs/MOBILE_GU
 
 ## Screenshots
 
-### Web app
+Click any image for the full-size version.
 
-![Analyze page overview with the verdict banner and summary cards](docs/images/01_analyze_overview.png)
-
-*Analyze page: the verdict banner, five summary cards and the recording controls.*
-
-![Timeline with waveform, spectrogram and detector score](docs/images/02_timeline.png)
-
-*Timeline: waveform, spectrogram and detector score on one shared time axis. Shaded bands are detected events.*
-
-![Why this score chart breaking one event's reliability score into the contribution of each measurement](docs/images/05_why_this_score.png)
-
-*"Why this score?": each bar adds or subtracts evidence from an average event until it reaches this event's score.*
-
-### Mobile app
+**Web app** (left to right: Analyze overview, Timeline, "Why this score?")
 
 <p>
-  <img src="docs/images/mobile/m01_analyze.png" width="200" alt="Mobile Analyze screen">
-  <img src="docs/images/mobile/m02_timeline.png" width="200" alt="Mobile timeline with waveform, spectrogram and detector score">
-  <img src="docs/images/mobile/m05_why_this_score.png" width="200" alt="Mobile Why this score breakdown">
-  <img src="docs/images/mobile/m16_dark_mode.png" width="200" alt="Mobile app in dark mode">
+  <a href="docs/images/01_analyze_overview.png"><img src="docs/images/01_analyze_overview.png" width="270" alt="Web Analyze page with the verdict banner and summary cards"></a>
+  <a href="docs/images/02_timeline.png"><img src="docs/images/02_timeline.png" width="270" alt="Web timeline with waveform, spectrogram and detector score"></a>
+  <a href="docs/images/05_why_this_score.png"><img src="docs/images/05_why_this_score.png" width="270" alt="Web Why this score chart breaking one event's reliability score into each measurement's contribution"></a>
 </p>
 
-*Analyze, Timeline, "Why this score?" and dark mode on the phone.* See the full
-[mobile walkthrough](docs/mobile-demo/README.md), which shows each feature one by one in an iPhone-sized frame with a
-finger indicator for every tap: a full video, a short clip per feature, and snapshots.
+**Phone app** (left to right: animated highlights, Analyze, Timeline, "Why this score?", dark mode)
 
-<div align="center">
-  <a href="docs/mobile-demo/README.md">
-    <img src="docs/mobile-demo/highlights.gif" width="240" alt="Animated highlights of the SWALLOHear mobile app in an iPhone-sized frame">
-  </a>
-</div>
+<p>
+  <a href="docs/mobile-demo/README.md"><img src="docs/mobile-demo/highlights.gif" width="150" alt="Animated highlights of the SWALLOHear mobile app in an iPhone-sized frame"></a>
+  <a href="docs/images/mobile/m01_analyze.png"><img src="docs/images/mobile/m01_analyze.png" width="150" alt="Mobile Analyze screen"></a>
+  <a href="docs/images/mobile/m02_timeline.png"><img src="docs/images/mobile/m02_timeline.png" width="150" alt="Mobile timeline with waveform, spectrogram and detector score"></a>
+  <a href="docs/images/mobile/m05_why_this_score.png"><img src="docs/images/mobile/m05_why_this_score.png" width="150" alt="Mobile Why this score breakdown"></a>
+  <a href="docs/images/mobile/m16_dark_mode.png"><img src="docs/images/mobile/m16_dark_mode.png" width="150" alt="Mobile app in dark mode"></a>
+</p>
 
-The still mobile screenshots come from the app's web build at phone size (390 × 844). On a real phone, navigation is the
-native bottom tab bar instead of the top bar.
+The phone stills come from the app's web build at phone size; on a real phone, navigation is the native bottom tab bar.
+For every screen, see the [web app guide](docs/APP_GUIDE.md#tour-of-the-features), the
+[mobile app guide](docs/MOBILE_GUIDE.md#tour), or the [mobile walkthrough](docs/mobile-demo/README.md), which shows each
+feature one by one in an iPhone-sized frame with a finger indicator for every tap.
 
 ## How it works
 
