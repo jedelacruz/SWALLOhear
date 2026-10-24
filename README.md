@@ -15,12 +15,15 @@ Philippine Junior Data Science Challenge (PJDSC) 2026<br>
   <a href="https://doi.org/10.5281/zenodo.4539695"><img src="https://img.shields.io/badge/data-Zenodo%20%C2%B7%20CC%20BY%204.0-blue" alt="Data: Zenodo, licensed CC BY 4.0"></a>
 </p>
 
-[Research paper (PDF)](docs/SWALLOHear_Research_Paper.pdf) ·
-[Research paper (read on GitHub)](docs/SWALLOHear_Research_Paper.md)<br>
-[Web app guide](docs/APP_GUIDE.md) ·
-[Web app demo video](docs/demo.webm)<br>
-[Mobile app guide](docs/MOBILE_GUIDE.md) ·
-[Mobile app walkthrough](docs/mobile-demo/README.md)
+<p>
+  <a href="docs/SWALLOHear_Research_Paper.pdf"><img src="https://img.shields.io/badge/Research%20paper-PDF-b31b1b?style=for-the-badge&amp;labelColor=30363d" alt="Research paper (PDF)"></a>
+  <a href="docs/APP_GUIDE.md"><img src="https://img.shields.io/badge/Web%20app-Guide-1f6feb?style=for-the-badge&amp;labelColor=30363d" alt="Web app guide"></a>
+  <a href="docs/MOBILE_GUIDE.md"><img src="https://img.shields.io/badge/Mobile%20app-Guide-2ea043?style=for-the-badge&amp;labelColor=30363d" alt="Mobile app guide"></a>
+  <br>
+  <a href="docs/SWALLOHear_Research_Paper.md"><img src="https://img.shields.io/badge/Research%20paper-Read%20on%20GitHub-b31b1b?style=for-the-badge&amp;labelColor=30363d" alt="Research paper (read on GitHub)"></a>
+  <a href="docs/demo.webm"><img src="https://img.shields.io/badge/Web%20app-Demo%20video-1f6feb?style=for-the-badge&amp;labelColor=30363d" alt="Web app demo video"></a>
+  <a href="docs/mobile-demo/README.md"><img src="https://img.shields.io/badge/Mobile%20app-Walkthrough-2ea043?style=for-the-badge&amp;labelColor=30363d" alt="Mobile app walkthrough"></a>
+</p>
 
 </div>
 
