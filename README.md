@@ -10,8 +10,8 @@ Team **RIPARION** · Philippine Junior Data Science Challenge (PJDSC) 2026<br>
 *Trace the Pattern, Target the Cure: Advancing Public Health Through Data Science*
 
 [Research paper (PDF)](docs/SWALLOHear_Research_Paper.pdf) · [Paper (web)](docs/SWALLOHear_Research_Paper.md) ·
-[Web app guide](docs/APP_GUIDE.md) · [Mobile app guide](docs/MOBILE_GUIDE.md) · [Web video demo](docs/demo.webm) ·
-[**Mobile walkthrough (every feature)**](docs/mobile-demo/README.md)
+[Web app guide](docs/APP_GUIDE.md) · [Mobile app guide](docs/MOBILE_GUIDE.md) · [Web demo](docs/demo.webm) ·
+[Mobile walkthrough](docs/mobile-demo/README.md)
 
 </div>
 
