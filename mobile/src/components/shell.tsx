@@ -93,7 +93,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
 
           <View style={{ gap: Space.sm, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: Space.lg }}>
             <T v="h3">Analysis server</T>
-            <T v="caption">The app sends audio to the SWALLOHear API (python api/server.py). By default it uses the computer running Expo, port 8000.</T>
+            <T v="caption">The app sends audio to the SWALLOHear API (python api/server.py). Automatic goes through the Expo server this app was loaded from, which forwards to the API on the same computer; you only need an address here for a separately hosted server.</T>
             <TextInput value={server} onChangeText={setServerText} autoCapitalize="none" autoCorrect={false} keyboardType="url"
               style={{ borderWidth: 1, borderColor: colors.border, borderRadius: Radius.sm, padding: Space.md, color: colors.text, backgroundColor: colors.surface }} />
             <Row>

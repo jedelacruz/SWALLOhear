@@ -7,6 +7,9 @@ The mobile app is an [Expo](https://expo.dev) (React Native) app in [`mobile/`](
 from the same code, and in a browser for quick checks. It has every feature of the [web app](APP_GUIDE.md), with the
 same colours and layout ideas.
 
+**▶ Watch it:** the [mobile walkthrough](mobile-demo/README.md) shows every feature one by one: a full video, a clip
+per feature and snapshots.
+
 <p>
 <img src="images/mobile/m01_analyze.png" width="200" alt="Analyze screen">
 <img src="images/mobile/m02_timeline.png" width="200" alt="Timeline">
@@ -19,20 +22,22 @@ same colours and layout ideas.
 ## How it works
 
 ```
- phone (Expo app)                                    your computer (same Wi-Fi)
-┌──────────────────────────┐   audio + settings   ┌─────────────────────────────────────┐
-│ record / pick / demo     │ ───────────────────► │ api/server.py  (port 8000)          │
-│ charts, tabs, your calls │ ◄─────────────────── │  same models & helpers as the web   │
-│ share CSV / JSON / report│   results as JSON    │  app (app/views/common.py, src/)    │
-└──────────────────────────┘                      └─────────────────────────────────────┘
+ phone (Expo app)                          your computer
+┌──────────────────────────┐  app + /api/…  ┌──────────────────────┐  /api/…  ┌────────────────────────────────┐
+│ record / pick / demo     │ ─────────────► │ npx expo start       │ ───────► │ api/server.py (port 8000)      │
+│ charts, tabs, your calls │ ◄───────────── │ (port 8081)          │ ◄─────── │ same models & helpers as the   │
+│ share CSV / JSON / report│                │ forwards /api/ calls │          │ web app (app/views, src/)      │
+└──────────────────────────┘                └──────────────────────┘          └────────────────────────────────┘
 ```
 
 - The **analysis runs in Python on a server** (`api/server.py`), using exactly the same models and code as the web app,
   so the phone and the web app give identical results.
 - The server is built on Starlette and uvicorn, which Streamlit already installs, so there are no new compiled packages
   for Smart App Control to block. Phone recordings (M4A/AAC, or WebM on web) are decoded with `imageio-ffmpeg`.
-- The app finds the server automatically: in Expo Go it uses the computer that serves the app, on port 8000. You can
-  change the address under **⚙ → Analysis server**, for example to point at a hosted server.
+- **No server address to set up.** The Expo dev server (`mobile/metro.config.js`) forwards every `/api/…` request to
+  `api/server.py` on the same computer, so the app reaches the analysis through the same address and port it loaded
+  from: home Wi-Fi, a hotspot or `npx expo start --tunnel`. Under **⚙ → Analysis server** you can point it at a
+  separately hosted server instead.
 - Charts are drawn with `react-native-svg`; the spectrogram is rendered as an image by the server.
 
 ---
@@ -40,7 +45,8 @@ same colours and layout ideas.
 ## Run it on your phone
 
 You need the project venv (see the [web app guide](APP_GUIDE.md#run-the-app)), Node.js and the free **Expo Go** app on
-the phone (App Store / Google Play). Phone and computer must be on the **same Wi-Fi**.
+the phone (App Store / Google Play). Phone and computer must be able to reach each other: the **same Wi-Fi**, or a
+hotspot from either device (see Troubleshooting if Expo Go times out).
 
 **1. Start the analysis server** (from the `repo` folder, venv active):
 
@@ -137,7 +143,8 @@ Release builds can already talk to an `http://` server on the local network (`us
 
 | Symptom | Fix |
 |---|---|
-| "Can't reach the analysis server at http://…:8000" | Start `python api/server.py`, check phone and computer are on the same Wi-Fi, and allow Python through the Windows firewall (private networks). Or set the address under ⚙. |
+| "Can't reach the analysis server" | Start `python api/server.py` on the same computer as `npx expo start`, then reload the app. Under ⚙ → Analysis server, choose **Automatic**. |
+| Expo Go: "The request timed out" | The phone can't reach the computer. After changing Wi-Fi, restart `npx expo start` and scan the **new** QR code (never reopen an old project from *Recently opened*). Many routers and Android hotspots block devices from talking to each other: use the computer's own **Mobile Hotspot** (Windows Settings → Network & internet), or your iPhone's **Personal Hotspot** with the computer joined to it. |
 | A recording uploads but fails to decode | `pip install imageio-ffmpeg` in the venv (needed for M4A/AAC/WebM). |
 | "Recording expired; load it again" | The server keeps the last 40 recordings in memory; restarting it clears them. Pick the clip again. |
 | Microphone does nothing | Allow microphone access for Expo Go (or SWALLOHear) in the phone's settings. |

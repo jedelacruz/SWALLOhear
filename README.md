@@ -10,7 +10,8 @@ Team **RIPARION** · Philippine Junior Data Science Challenge (PJDSC) 2026<br>
 *Trace the Pattern, Target the Cure: Advancing Public Health Through Data Science*
 
 [Research paper (PDF)](docs/SWALLOHear_Research_Paper.pdf) · [Paper (web)](docs/SWALLOHear_Research_Paper.md) ·
-[Web app guide](docs/APP_GUIDE.md) · [Mobile app guide](docs/MOBILE_GUIDE.md) · [Video demo](docs/demo.webm)
+[Web app guide](docs/APP_GUIDE.md) · [Mobile app guide](docs/MOBILE_GUIDE.md) · [Web video demo](docs/demo.webm) ·
+[**Mobile walkthrough (every feature)**](docs/mobile-demo/README.md)
 
 </div>
 
@@ -101,6 +102,12 @@ by the same Python models.
 Every feature is explained step by step, with screenshots, in the [research paper](docs/SWALLOHear_Research_Paper.md#7-user-guide),
 the [web app guide](docs/APP_GUIDE.md) and the [mobile app guide](docs/MOBILE_GUIDE.md).
 
+<a href="docs/mobile-demo/README.md"><img src="docs/mobile-demo/highlights.gif" width="220" align="right" alt="Mobile app walkthrough"></a>
+
+**Watch the mobile app:** the [mobile walkthrough](docs/mobile-demo/README.md) shows all 21 features one by one in an
+iPhone-sized frame, with a finger indicator for every tap: a full video, a short clip per feature, and snapshots.
+<br clear="right">
+
 ## How it works
 
 ![SWALLOHear pipeline](docs/paper/figures/fig1_pipeline.png)
@@ -178,15 +185,15 @@ terminal to stop. Other devices on your Wi-Fi can open the *Network URL* the ter
 
 ### 2. Mobile app on your phone (Android & iPhone)
 
-The phone app sends audio to a small analysis server on your computer. Phone and computer must be on the **same Wi-Fi**.
+The phone app sends audio to a small analysis server on your computer, through the same Expo connection that loads
+the app, so there is no server address to set up. Phone and computer must be able to reach each other: the same Wi-Fi,
+or a hotspot from either device.
 
 **Terminal 1 – analysis server** (venv active, in the `swallohear` folder):
 
 ```bash
 python api/server.py
 ```
-
-When Windows asks whether Python may use the network, tick **Private networks** and allow it.
 
 **Terminal 2 – the app:**
 
@@ -200,7 +207,8 @@ npm install
 npx expo start
 ```
 
-Scan the QR code: **Android** with the Expo Go app, **iPhone** with the Camera app.
+Scan the QR code: **Android** with the Expo Go app, **iPhone** with the Camera app. If Windows asks whether Node.js may
+use the network, allow it.
 
 > **iPhone only:** Expo Go needs the same free Expo account on the phone and the computer. Create one at
 > [expo.dev/signup](https://expo.dev/signup), sign in inside Expo Go, then run `npx expo login --no-browser` on the
@@ -276,7 +284,8 @@ Random seeds are fixed. Steps 3–6 take about 30 minutes on a laptop CPU.
 | `DLL load failed … An Application Control policy has blocked this file` | Windows Smart App Control is blocking a very new package. Use Python 3.13 and `pip install -r requirements.txt` (it pins versions that load). |
 | `'streamlit'` / `'python'` is not recognized | Go to the `swallohear` folder and run `.venv\Scripts\activate` first. |
 | `AttributeError: 'Analyzer' object has no attribute 'score'` | The server was started before you updated the code. Stop it with Ctrl+C and start it again. |
-| Phone app: "Can't reach the analysis server" | Start `python api/server.py`, put both devices on the same Wi-Fi, and allow Python through the Windows firewall (private networks). Or set the address under ⚙ → Analysis server. |
+| Phone app: "Can't reach the analysis server" | Make sure `python api/server.py` is running on the same computer as `npx expo start`, then reload the app. In ⚙ → Analysis server, choose **Automatic**. |
+| Expo Go: "The request timed out" | The phone can't reach the computer. Restart `npx expo start` after changing Wi-Fi and scan the **new** QR code. Some routers and phone hotspots block devices from talking to each other: use the computer's own Mobile Hotspot, or your iPhone's Personal Hotspot with the computer joined to it. |
 | iPhone: "You need to be signed in to Expo Go and Expo CLI" | Sign in to the same Expo account in Expo Go and with `npx expo login --no-browser` on the computer. |
 | Blank page after restarting a server | Reload the browser tab. |
 

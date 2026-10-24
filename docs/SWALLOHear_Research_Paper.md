@@ -609,7 +609,8 @@ withheld** with the reason *Low SNR*:
 The mobile app (Android and iPhone, built with Expo) has **every web feature**, in the same colours and layout ideas,
 adapted for touch: a bottom tab bar (Analyze, Compare, Batch, Method), a **☀/☾** theme switch and a **⚙** settings
 sheet in the header, tappable event markers with 1–8× zoom, and the phone's share sheet for exports. It can record
-directly from the phone's microphone.
+directly from the phone's microphone. A captioned video walkthrough of all 21 mobile features, with per-feature clips and
+snapshots, is in [`docs/mobile-demo/`](mobile-demo/README.md).
 
 <p>
 <img src="images/mobile/m01_analyze.png" width="180" alt="Analyze">
@@ -624,8 +625,9 @@ directly from the phone's microphone.
 <img src="images/mobile/m16_dark_mode.png" width="180" alt="Dark mode">
 </p>
 
-The phone sends the audio to the API on a computer on the same Wi-Fi, which runs the same Python models, so results are
-identical to the web app. The app finds the server automatically when opened through Expo Go.
+The phone sends the audio to the API on the computer, which runs the same Python models, so results are identical to the
+web app. The Expo dev server forwards the app's `/api/` requests to the API, so the app reaches the analysis through the
+same connection it was loaded from, with nothing to configure.
 
 ### 6.4 The HTTP API
 
@@ -714,8 +716,7 @@ You need **two** terminals, both in the project folder with `.venv\Scripts\activ
 ```
 python api/server.py
 ```
-Wait for `SWALLOHear API on http://0.0.0.0:8000`. If Windows asks whether Python may use the network, tick **Private
-networks** and click **Allow**.
+Wait for `SWALLOHear API on http://0.0.0.0:8000`.
 
 **Terminal 2, the app:**
 ```
@@ -730,8 +731,10 @@ npx expo start
   `npx expo login --no-browser` with the same account; then scan the QR code with the **Camera** app.
 - **No phone:** press **w** in Terminal 2 to open the mobile app in your browser.
 
-The phone and the computer must be on the **same Wi-Fi**. You can use the web app, the phone and the browser version at
-the same time.
+The phone and the computer must be able to reach each other: the **same Wi-Fi**, or a hotspot from either device. If
+Windows asks whether Node.js may use the network, allow it. The app reaches the analysis server through the same Expo
+connection, so there is no address to configure. You can use the web app, the phone and the browser version at the same
+time.
 
 ### 7.5 Your first analysis (five minutes)
 
@@ -816,7 +819,8 @@ on the same Wi-Fi.
 | `DLL load failed … Application Control policy has blocked this file` | Windows Smart App Control blocked a very new package. Use Python 3.13 and `pip install -r requirements.txt`, which pins versions that load. |
 | `'streamlit'` or `'python'` is not recognized | Open the terminal in the project folder and run `.venv\Scripts\activate`. |
 | `'Analyzer' object has no attribute 'score'` | The server was started before the code was updated: press Ctrl+C and start it again. |
-| Phone: "Can't reach the analysis server" | Make sure `python api/server.py` is running, both devices are on the same Wi-Fi, and Python is allowed through the Windows firewall (*Private networks*). Or set the address under ⚙ → Analysis server. |
+| Phone: "Can't reach the analysis server" | Make sure `python api/server.py` is running on the same computer as `npx expo start`, then reload the app; under ⚙ → Analysis server choose **Automatic**. |
+| Expo Go: "The request timed out" | The phone can't reach the computer. Restart `npx expo start` after changing Wi-Fi and scan the new QR code. If the router blocks devices from talking to each other, use the computer's Mobile Hotspot or the iPhone's Personal Hotspot. |
 | iPhone: "You need to be signed in to Expo Go and Expo CLI" | Sign in to the same Expo account in Expo Go and with `npx expo login --no-browser`. |
 | Phone cannot open the QR code on school or public Wi-Fi | Use a phone hotspot for both devices, or `npx expo start --tunnel` and set the server address manually. |
 | Blank page after restarting | Reload the browser tab. |

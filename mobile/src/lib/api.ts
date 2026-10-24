@@ -7,16 +7,15 @@ import type { Analysis, BatchRow, Loaded, LocalFile, Meta, Settings, Stress, Swe
 export const API_PORT = 8000;
 
 /**
- * Where the API lives when no override is set: the computer that serves the Expo bundle, on port 8000.
- * In Expo Go that's the dev machine's LAN address, so the phone reaches the server with no configuration.
+ * Where the API lives when no override is set: the Expo dev server the app was loaded from. Its metro.config.js
+ * forwards /api/* to api/server.py on the same computer, so whatever address the phone used to load the app
+ * (home Wi-Fi, a hotspot, a tunnel) also reaches the analysis, with no configuration.
+ * Builds without a dev server fall back to port 8000 on this device; set the address under ⚙ instead.
  */
 export function defaultApiBase(): string {
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    return `${window.location.protocol}//${window.location.hostname}:${API_PORT}`;
-  }
-  const hostUri = Constants.expoConfig?.hostUri ?? '';
-  const host = hostUri.split(':')[0];
-  return host ? `http://${host}:${API_PORT}` : `http://localhost:${API_PORT}`;
+  if (Platform.OS === 'web' && typeof window !== 'undefined') return window.location.origin;
+  const hostUri = Constants.expoConfig?.hostUri;
+  return hostUri ? `http://${hostUri}` : `http://localhost:${API_PORT}`;
 }
 
 let base = defaultApiBase();
@@ -31,7 +30,7 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs = 120000):
   try {
     res = await fetch(absolute(path), { ...init, signal: ctrl.signal });
   } catch {
-    throw new Error(`Can't reach the analysis server at ${base}. Start it with "python api/server.py" and check the phone is on the same Wi-Fi.`);
+    throw new Error(`Can't reach the analysis server at ${base}. Check that "npx expo start" and "python api/server.py" are both running on the computer, then reload the app.`);
   } finally {
     clearTimeout(timer);
   }
