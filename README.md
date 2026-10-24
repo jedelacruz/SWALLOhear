@@ -33,11 +33,6 @@ The system processes compatible neck-microphone recordings to identify candidate
 
 Its purpose is to investigate the feasibility, reproducibility, and limitations of audio-based swallowing-event analysis, particularly in research relevant to post-stroke care.
 
-**Clinical limitation:** Detecting swallowing events does not establish swallowing safety or diagnose dysphagia, aspiration, or pneumonia. SWALLOHear has not been clinically validated as a diagnostic device and must not be used independently to guide patient-care decisions.
-
-**Data privacy:** Use authorized, appropriately de-identified recordings. Do not upload identifiable patient audio to shared or unsecured servers.
-
-Performance and reliability claims are limited to the datasets, evaluation procedures, and experimental results documented in this repository.
 
 ![Screen recording of a walk through every page of the SWALLOHear web app](docs/demo.gif)
 
