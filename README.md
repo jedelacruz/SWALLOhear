@@ -76,37 +76,44 @@ by the same Python models.
 
 ## Features
 
-| | Web app | Mobile app |
-|---|:---:|:---:|
-| Demo clips from held-out test participants (with expert labels) | ✅ | ✅ |
-| Upload your own audio (WAV, FLAC; plus M4A/MP3/WebM on mobile) | ✅ | ✅ |
-| Record from the microphone | ✅ | ✅ |
-| Synthetic test signals | ✅ | ✅ |
-| Four-state verdict: Events detected / No event / Result withheld, with reason codes | ✅ | ✅ |
-| Interactive timeline: waveform + spectrogram + detector score; tap/click an event | ✅ | ✅ |
-| Event card: listen to the event, reliability gauge, top reasons, zoomed view | ✅ | ✅ |
-| Your own call on each event (Swallow / Not swallow / Unsure) | ✅ | ✅ |
-| **"Why this score?"**: exact breakdown of each event's reliability score | ✅ | ✅ |
-| **Rhythm**: rate, intervals, regularity, longest pause | ✅ | ✅ |
-| **Robustness lab**: re-run at 7 noise levels and watch the quality gate react | ✅ | ✅ |
-| **Signal quality**: every gate check, SNR estimate explained, spectrum | ✅ | ✅ |
-| **Expert comparison**: precision, recall, F1, timing error, Expert-vs-System lanes | ✅ | ✅ |
-| Stress test: white, pink or 60 Hz mains-hum noise, simulated clipping | ✅ | ✅ |
-| Live detector settings (5 thresholds) with reset to validated values | ✅ | ✅ |
-| **Compare** two recordings (or one clip clean vs noisy) side by side | ✅ | ✅ |
-| **Batch** analysis of many recordings | ✅ | ✅ |
-| Method & results page with the experiment charts | ✅ | ✅ |
-| Exports: events CSV, full JSON, annotations, session log, **printable HTML/PDF report** | ✅ | ✅ |
-| Light / dark mode | ✅ | ✅ |
+Everything below is available in **both the web app and the mobile app**.
+
+- **Demo clips** from held-out test participants (with expert labels)
+- **Upload your own audio** (WAV, FLAC on web; plus M4A/MP3/WebM on mobile)
+- **Record** from the microphone
+- **Synthetic test signals**
+- **Four-state verdict:** Events detected / No event / Result withheld, with reason codes
+- **Interactive timeline:** waveform + spectrogram + detector score; tap/click an event
+- **Event card:** listen to the event, reliability gauge, top reasons, zoomed view
+- **Your own call** on each event (Swallow / Not swallow / Unsure)
+- **"Why this score?":** exact breakdown of each event's reliability score
+- **Rhythm:** rate, intervals, regularity, longest pause
+- **Robustness lab:** re-run at 7 noise levels and watch the quality gate react
+- **Signal quality:** every gate check, SNR estimate explained, spectrum
+- **Expert comparison:** precision, recall, F1, timing error, Expert-vs-System lanes
+- **Stress test:** white, pink or 60 Hz mains-hum noise, simulated clipping
+- **Live detector settings** (5 thresholds) with reset to validated values
+- **Compare** two recordings (or one clip clean vs noisy) side by side
+- **Batch analysis** of many recordings
+- **Method & results page** with the experiment charts
+- **Exports:** events CSV, full JSON, annotations, session log, printable HTML/PDF report
+- **Light / dark mode**
 
 Every feature is explained step by step, with screenshots, in the [research paper](docs/SWALLOHear_Research_Paper.md#7-user-guide),
 the [web app guide](docs/APP_GUIDE.md) and the [mobile app guide](docs/MOBILE_GUIDE.md).
 
 <a href="docs/mobile-demo/README.md"><img src="docs/mobile-demo/highlights.gif" width="220" align="right" alt="Mobile app walkthrough"></a>
 
-**Watch the mobile app:** the [mobile walkthrough](docs/mobile-demo/README.md) shows all 21 features one by one in an
-iPhone-sized frame, with a finger indicator for every tap: a full video, a short clip per feature, and snapshots.
-<br clear="right">
+### Watch the mobile app
+
+The [mobile walkthrough](docs/mobile-demo/README.md) shows all 20 features one by one in an iPhone-sized frame, with a
+finger indicator for every tap: a full video, a short clip per feature, and snapshots.
+
+<div align="center">
+  <a href="docs/mobile-demo/README.md">
+    <img src="docs/mobile-demo/highlights.gif" width="240" alt="Mobile app walkthrough">
+  </a>
+</div>
 
 ## How it works
 
