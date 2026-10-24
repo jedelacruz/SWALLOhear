@@ -9,6 +9,9 @@ It detects swallowing-related acoustic events, localizes onset/offset, and says 
 **Web app guide:** [`docs/APP_GUIDE.md`](docs/APP_GUIDE.md) covers every feature with screenshots, how it works, exports and
 troubleshooting. Full video walkthrough: [`docs/demo.webm`](docs/demo.webm).
 
+**Mobile app (Android & iOS, Expo):** [`docs/MOBILE_GUIDE.md`](docs/MOBILE_GUIDE.md) covers running it on your phone with
+Expo Go, the analysis API it talks to (`api/server.py`) and every screen.
+
 ## Data
 Khalifa, Donohue, Coyle & Sejdić (2021), *Swallowing High Resolution Cervical Auscultation Signals*, Zenodo, https://doi.org/10.5281/zenodo.4539695 (CC BY 4.0).
 Not stored in this repo. The files we received contain **1,285 recordings; 1,092 have labelled swallows (1,876 swallows, 174 participants)**; labels are video-fluoroscopy frame numbers at 60 fps; signals are 4 kHz, 4 channels (we use the microphone, channel 0).
@@ -52,4 +55,4 @@ All numbers below come from `results/*.json`; the bootstrap script checks itself
 Modest absolute accuracy (F1 about 0.5). The reliability-aware output buys precision with a large loss of recall; it is a trade-off, not a free improvement. Some "false detections" may be real swallows that were not labelled (the dataset authors report this); no manual audit was done yet. Noise tests use synthetic white noise only, not real household noise. No CNN was built (a Random Forest was used instead). One split, one run, 27 test participants. Group labels `ns`/`s` are unverified, so no stroke-specific claims. Not validated on any smartphone or low-cost stethoscope. Research use only; no clinical or Philippine validation.
 
 ## Layout
-`src/swallohear/` core package (io, preprocess, features, detectors, reliability, final) · `scripts/` experiments · `app/streamlit_app.py` + `app/views/` web app (guide: `docs/APP_GUIDE.md`) · `configs/final.json` selected thresholds · `models/` trained models · `data/demo/` demo clips (CC BY 4.0) · `results/` experiment outputs · `tests/`.
+`src/swallohear/` core package (io, preprocess, features, detectors, reliability, final) · `scripts/` experiments · `app/streamlit_app.py` + `app/views/` web app (guide: `docs/APP_GUIDE.md`) · `api/server.py` HTTP API + `mobile/` Expo app (guide: `docs/MOBILE_GUIDE.md`) · `configs/final.json` selected thresholds · `models/` trained models · `data/demo/` demo clips (CC BY 4.0) · `results/` experiment outputs · `tests/`.

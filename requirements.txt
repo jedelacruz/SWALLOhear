@@ -7,5 +7,6 @@ pandas==2.2.3
 streamlit>=1.39
 plotly>=5.20
 soundfile>=0.12   # optional: FLAC support
+imageio-ffmpeg>=0.5   # mobile API: decodes phone recordings (M4A/AAC/WebM)
 pytest>=8
 # M2 (CNN) later: torch>=2.2
