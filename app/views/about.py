@@ -52,7 +52,7 @@ def render():
             st.markdown("##### Ordinary vs reliability-aware output")
             lvl = st.segmented_control("Noise level", LEVELS, default="clean", key="about_lvl",
                                        format_func=lambda l: l if l == "clean" else f"{l} dB") or "clean"
-            d = e3.get(lvl, {})
+            d = e3.get(lvl if lvl == "clean" else f"{lvl} dB", {})   # E3 is keyed "clean", "20 dB", …
             fig = go.Figure()
             for mode, colour, nm in (("ordinary", C.SLATE, "Ordinary"), ("reliability_aware", C.TEAL, "Reliability-aware")):
                 m = d.get(mode, {})

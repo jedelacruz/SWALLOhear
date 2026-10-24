@@ -26,7 +26,7 @@ const HEADLINE = [
 export default function MethodScreen() {
   const { meta } = useApp();
   const [lvl, setLvl] = useState<(typeof LEVELS)[number]>('clean');
-  const e24 = meta?.results.E2_E4 ?? {}; const e3 = meta?.results.E3?.[lvl];
+  const e24 = meta?.results.E2_E4 ?? {}; const e3 = meta?.results.E3?.[lvl === 'clean' ? 'clean' : `${lvl} dB`];   // E3 is keyed "clean", "20 dB", …
   const lab = (l: string) => (l === 'clean' ? 'clean' : `${l} dB`);
   return (
     <Screen>
