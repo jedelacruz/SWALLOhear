@@ -16,21 +16,11 @@ Philippine Junior Data Science Challenge (PJDSC) 2026<br>
 </p>
 
 <p>
-  <a href="docs/SWALLOHear_Research_Paper.pdf">Research paper (PDF)</a>
-  &emsp;·&emsp;
-  <a href="docs/SWALLOHear_Research_Paper.md">Research paper (read on GitHub)</a>
-</p>
-
-<p>
-  <a href="docs/APP_GUIDE.md">Web app guide</a>
-  &emsp;·&emsp;
-  <a href="docs/demo.webm">Web app demo video</a>
-</p>
-
-<p>
-  <a href="docs/MOBILE_GUIDE.md">Mobile app guide</a>
-  &emsp;·&emsp;
-  <a href="docs/mobile-demo/README.md">Mobile app walkthrough</a>
+  <b>Paper</b>&nbsp;&nbsp;<a href="docs/SWALLOHear_Research_Paper.pdf" title="Research paper (PDF)">PDF</a>&nbsp;·&nbsp;<a href="docs/SWALLOHear_Research_Paper.md" title="Research paper (read on GitHub)">Read&nbsp;on&nbsp;GitHub</a>
+  &emsp;|&emsp;
+  <b>Web&nbsp;app</b>&nbsp;&nbsp;<a href="docs/APP_GUIDE.md" title="Web app guide">Guide</a>&nbsp;·&nbsp;<a href="docs/demo.webm" title="Web app demo video">Demo&nbsp;video</a>
+  &emsp;|&emsp;
+  <b>Mobile&nbsp;app</b>&nbsp;&nbsp;<a href="docs/MOBILE_GUIDE.md" title="Mobile app guide">Guide</a>&nbsp;·&nbsp;<a href="docs/mobile-demo/README.md" title="Mobile app walkthrough">Walkthrough</a>
 </p>
 
 </div>
