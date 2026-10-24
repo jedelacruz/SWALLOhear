@@ -2,11 +2,9 @@
 
 <img src="mobile/assets/images/icon.png" width="96" alt="SWALLOHear logo">
 
-# SWALLOHear
+# SWALLOHear: Reliability-Aware Swallowing Detection for Post-Stroke Dysphagia Screening
 
-**A reliability-aware acoustic swallowing analysis research system for post-stroke dysphagia research**
-
-Team **RIPARION** · Philippine Junior Data Science Challenge (PJDSC) 2026<br>
+Philippine Junior Data Science Challenge (PJDSC) 2026<br>
 *Trace the Pattern, Target the Cure: Advancing Public Health Through Data Science*
 
 <p>
@@ -18,11 +16,11 @@ Team **RIPARION** · Philippine Junior Data Science Challenge (PJDSC) 2026<br>
 </p>
 
 [Research paper (PDF)](docs/SWALLOHear_Research_Paper.pdf) ·
-[Research paper (web)](docs/SWALLOHear_Research_Paper.md) ·
+[Research paper (read on GitHub)](docs/SWALLOHear_Research_Paper.md)<br>
 [Web app guide](docs/APP_GUIDE.md) ·
+[Web app demo video](docs/demo.webm)<br>
 [Mobile app guide](docs/MOBILE_GUIDE.md) ·
-[Web demo video](docs/demo.webm) ·
-[Mobile walkthrough](docs/mobile-demo/README.md)
+[Mobile app walkthrough](docs/mobile-demo/README.md)
 
 </div>
 
@@ -33,7 +31,7 @@ Team **RIPARION** · Philippine Junior Data Science Challenge (PJDSC) 2026<br>
 
 ![Screen recording of a walk through every page of the SWALLOHear web app](docs/demo.gif)
 
-**Full video walkthrough:** [`docs/demo.webm`](docs/demo.webm) (55 seconds, no audio). Download it and open it in a
+**Web app demo video:** [`docs/demo.webm`](docs/demo.webm) (55 seconds, no audio). Download it and open it in a
 browser or video player.
 
 > [!TIP]
@@ -63,7 +61,6 @@ browser or video player.
 - [Repository layout](#repository-layout)
 - [Developer notes](#developer-notes)
 - [Troubleshooting](#troubleshooting)
-- [Team](#team)
 - [Data, licence and citation](#data-licence-and-citation)
 
 ---
@@ -148,7 +145,7 @@ Click any image for the full-size version.
 
 The phone stills come from the app's web build at phone size; on a real phone, navigation is the native bottom tab bar.
 For every screen, see the [web app guide](docs/APP_GUIDE.md#tour-of-the-features), the
-[mobile app guide](docs/MOBILE_GUIDE.md#tour), or the [mobile walkthrough](docs/mobile-demo/README.md), which shows each
+[mobile app guide](docs/MOBILE_GUIDE.md#tour), or the [mobile app walkthrough](docs/mobile-demo/README.md), which shows each
 feature one by one in an iPhone-sized frame with a finger indicator for every tap.
 
 ## How it works
@@ -229,7 +226,7 @@ not an approximation.
 | Try it on my computer (easiest) | Python 3.13 | [Option A: Web app](#option-a-web-app-on-your-computer) |
 | Use it on my phone | Python 3.13, Node.js, Expo Go | [Option B: Mobile app](#option-b-mobile-app-on-your-phone) |
 | Try the mobile app without a phone | Python 3.13, Node.js | [Mobile app in a browser](#no-phone-use-the-mobile-app-in-your-browser) |
-| Just look, without installing anything | A browser | [Web demo video](docs/demo.webm) or [mobile walkthrough](docs/mobile-demo/README.md) |
+| Just look, without installing anything | A browser | [Web app demo video](docs/demo.webm) or [mobile app walkthrough](docs/mobile-demo/README.md) |
 | Reproduce the paper's numbers | Python 3.13, the Zenodo data | [Reproduce the experiments](#reproduce-the-experiments) |
 
 ### What you need
@@ -595,16 +592,6 @@ the app icon and splash image.
 
 ---
 
-## Team
-
-**Team RIPARION**
-
-- Jan Emmanuel Dela Cruz
-- Denver Reyes
-- Joshua Abalo
-- Rhaine Cyrel Valera
-- Jhayciel Santiago
-
 ## Data, licence and citation
 
 **Data:** Khalifa, Y., Donohue, C., Coyle, J., & Sejdić, E. (2021). *Swallowing High Resolution Cervical Auscultation
@@ -613,8 +600,7 @@ excerpts of this dataset under the same licence.
 
 **Code:** see [LICENSE](LICENSE).
 
-**Cite this work:** Dela Cruz, J. E., Reyes, D., Abalo, J., Valera, R. C., & Santiago, J. (2026). *SWALLOHear: A
-reliability-aware acoustic swallowing analysis research system for post-stroke dysphagia* (Team RIPARION, PJDSC 2026).
+**Cite this work:** *SWALLOHear: Reliability-Aware Swallowing Detection for Post-Stroke Dysphagia Screening* (2026). Philippine Junior Data Science Challenge (PJDSC) 2026.
 https://github.com/jedelacruz/swallohear
 
 <details>
@@ -622,10 +608,9 @@ https://github.com/jedelacruz/swallohear
 
 ```bibtex
 @misc{swallohear2026,
-  title  = {SWALLOHear: A reliability-aware acoustic swallowing analysis research system for post-stroke dysphagia},
-  author = {Dela Cruz, Jan Emmanuel and Reyes, Denver and Abalo, Joshua and Valera, Rhaine Cyrel and Santiago, Jhayciel},
+  title  = {SWALLOHear: Reliability-Aware Swallowing Detection for Post-Stroke Dysphagia Screening},
   year   = {2026},
-  note   = {Team RIPARION, Philippine Junior Data Science Challenge (PJDSC) 2026},
+  note   = {Philippine Junior Data Science Challenge (PJDSC) 2026},
   url    = {https://github.com/jedelacruz/swallohear}
 }
 ```
