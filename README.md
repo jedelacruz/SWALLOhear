@@ -102,8 +102,6 @@ Everything below is available in **both the web app and the mobile app**.
 Every feature is explained step by step, with screenshots, in the [research paper](docs/SWALLOHear_Research_Paper.md#7-user-guide),
 the [web app guide](docs/APP_GUIDE.md) and the [mobile app guide](docs/MOBILE_GUIDE.md).
 
-<a href="docs/mobile-demo/README.md"><img src="docs/mobile-demo/highlights.gif" width="220" align="right" alt="Mobile app walkthrough"></a>
-
 ### Watch the mobile app
 
 The [mobile walkthrough](docs/mobile-demo/README.md) shows all 20 features one by one in an iPhone-sized frame, with a
