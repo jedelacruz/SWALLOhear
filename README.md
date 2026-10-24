@@ -2,7 +2,7 @@
 
 <img src="mobile/assets/images/icon.png" width="96" alt="SWALLOHear logo">
 
-# SWALLOHear: Reliability-Aware Swallowing Detection for Post-Stroke Dysphagia Screening
+# SWALLOHear <br>Reliability-Aware Swallowing Detection for Post-Stroke Dysphagia Screening
 
 Philippine Junior Data Science Challenge (PJDSC) 2026<br>
 *Trace the Pattern, Target the Cure: Advancing Public Health Through Data Science*
