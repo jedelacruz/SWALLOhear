@@ -31,7 +31,10 @@ Team **RIPARION** · Philippine Junior Data Science Challenge (PJDSC) 2026<br>
 > and says how far to trust each result. It does **not** assess dysphagia, aspiration or pneumonia and must not be used to
 > make care decisions. Do not upload identifiable patient audio to a shared server.
 
-![Screen recording of the SWALLOHear web app analysing a demo clip](docs/demo.gif)
+![Screen recording of a walk through every page of the SWALLOHear web app](docs/demo.gif)
+
+**Full video walkthrough:** [`docs/demo.webm`](docs/demo.webm) (55 seconds, no audio). Download it and open it in a
+browser or video player.
 
 > [!TIP]
 > **Fastest way to try it:** run the [web app](#option-a-web-app-on-your-computer) and choose **Demo** in the sidebar.
@@ -41,7 +44,8 @@ Team **RIPARION** · Philippine Junior Data Science Challenge (PJDSC) 2026<br>
 
 - **It checks the recording first.** If the audio is too poor to judge, the result is withheld instead of guessed.
 - **It shows how far to trust each detection.** Every detected swallow-related sound is labelled **Confident** or **Low-confidence**.
-- **It works on the web and on your phone.** The same Python models power a website (Streamlit) and an Android/iPhone app (Expo).
+- **It explains itself.** Each reliability score comes with an exact breakdown, so you can see which measurements raised or lowered it.
+- **It works on the web and on your phone.** The same Python models power a website (Streamlit) and an Android/iPhone app (Expo), so both give identical results.
 - **Headline result:** reporting only Confident events raises precision from **0.41 to 0.69** and cuts false detections from
   **9.4 to 1.5 per minute**, at the cost of recall (**0.63 to 0.33**). See [What we found](#what-we-found).
 
@@ -49,12 +53,15 @@ Team **RIPARION** · Philippine Junior Data Science Challenge (PJDSC) 2026<br>
 
 - [What is SWALLOHear?](#what-is-swallohear)
 - [Features](#features)
+- [Screenshots](#screenshots)
 - [How it works](#how-it-works)
 - [Quick start](#quick-start)
+- [Using the app](#using-the-app)
 - [What we found](#what-we-found)
 - [Limitations and ethics](#limitations-and-ethics)
 - [Reproduce the experiments](#reproduce-the-experiments)
 - [Repository layout](#repository-layout)
+- [Developer notes](#developer-notes)
 - [Troubleshooting](#troubleshooting)
 - [Team](#team)
 - [Data, licence and citation](#data-licence-and-citation)
@@ -85,13 +92,13 @@ Every feature below is available in **both the web app and the mobile app**.
 ### Get audio in
 
 - **Demo clips** from held-out test participants, with expert labels
-- **Upload your own audio** (WAV and FLAC on web; plus M4A, MP3 and WebM on mobile)
+- **Upload your own audio** (WAV and FLAC on web, up to 120 s; plus M4A, MP3 and WebM on mobile)
 - **Record** from the microphone
 - **Synthetic test signals**
 
 ### Read the result
 
-- **Four-state verdict:** Events detected, No event, or Result withheld, with reason codes
+- **Verdict banner:** Events detected, No event detected, or Result withheld, with reason codes
 - **Interactive timeline:** waveform, spectrogram and detector score; tap or click an event
 - **Event card:** listen to the event, see its reliability gauge, top reasons and a zoomed view
 - **Your own call** on each event (Swallow, Not swallow or Unsure)
@@ -112,14 +119,38 @@ Every feature below is available in **both the web app and the mobile app**.
 - **Batch analysis** of many recordings
 - **Method and results page** with the experiment charts
 - **Exports:** events CSV, full JSON, annotations, session log, and a printable HTML/PDF report
-- **Light and dark mode**
+- **Light and dark mode** (the ☀ / ☾ switch in the header)
 
 Every feature is explained step by step, with screenshots, in the [research paper](docs/SWALLOHear_Research_Paper.md#7-user-guide),
 the [web app guide](docs/APP_GUIDE.md) and the [mobile app guide](docs/MOBILE_GUIDE.md).
 
-### Watch the mobile app
+## Screenshots
 
-The [mobile walkthrough](docs/mobile-demo/README.md) shows the features one by one in an iPhone-sized frame, with a
+### Web app
+
+![Analyze page overview with the verdict banner and summary cards](docs/images/01_analyze_overview.png)
+
+*Analyze page: the verdict banner, five summary cards and the recording controls.*
+
+![Timeline with waveform, spectrogram and detector score](docs/images/02_timeline.png)
+
+*Timeline: waveform, spectrogram and detector score on one shared time axis. Shaded bands are detected events.*
+
+![Why this score chart breaking one event's reliability score into the contribution of each measurement](docs/images/05_why_this_score.png)
+
+*"Why this score?": each bar adds or subtracts evidence from an average event until it reaches this event's score.*
+
+### Mobile app
+
+<p>
+  <img src="docs/images/mobile/m01_analyze.png" width="200" alt="Mobile Analyze screen">
+  <img src="docs/images/mobile/m02_timeline.png" width="200" alt="Mobile timeline with waveform, spectrogram and detector score">
+  <img src="docs/images/mobile/m05_why_this_score.png" width="200" alt="Mobile Why this score breakdown">
+  <img src="docs/images/mobile/m16_dark_mode.png" width="200" alt="Mobile app in dark mode">
+</p>
+
+*Analyze, Timeline, "Why this score?" and dark mode on the phone.* See the full
+[mobile walkthrough](docs/mobile-demo/README.md), which shows each feature one by one in an iPhone-sized frame with a
 finger indicator for every tap: a full video, a short clip per feature, and snapshots.
 
 <div align="center">
@@ -127,6 +158,9 @@ finger indicator for every tap: a full video, a short clip per feature, and snap
     <img src="docs/mobile-demo/highlights.gif" width="240" alt="Animated highlights of the SWALLOHear mobile app in an iPhone-sized frame">
   </a>
 </div>
+
+The still mobile screenshots come from the app's web build at phone size (390 × 844). On a real phone, navigation is the
+native bottom tab bar instead of the top bar.
 
 ## How it works
 
@@ -146,14 +180,54 @@ finger indicator for every tap: a full video, a short clip per feature, and snap
 All thresholds were chosen on validation participants only. The 27 test participants were used once, for reporting.
 
 **How the pieces connect.** The web app and the mobile app both use the same `swallohear` Python package and trained
-models. The web app calls the package directly; the mobile app talks to it through a small HTTP server (`api/server.py`).
+models, so a phone and a browser give identical results. The web app calls the package directly. On the phone, the
+analysis runs in Python on your computer: the app talks to the Expo dev server, which forwards every `/api/…` request to
+a small analysis server (`api/server.py`).
 
 ```mermaid
 flowchart LR
-    W["Web app<br/>(Streamlit)"] --> P["swallohear Python package<br/>(src/swallohear)"]
-    M["Mobile app<br/>(Expo)"] --> A["api/server.py"] --> P
+    W["Web app<br/>(Streamlit, port 8501)"] --> P["swallohear Python package<br/>(src/swallohear)"]
+    M["Phone app<br/>(Expo Go)"] --> E["Expo dev server<br/>(npx expo start, port 8081)<br/>forwards /api/ calls"]
+    E --> A["Analysis server<br/>(api/server.py, port 8000)"]
+    A --> P
     P --> T["Trained models<br/>(models/)"]
 ```
+
+<details>
+<summary>Technical details of the pipeline</summary>
+
+**Processing steps**
+
+1. Resample to 4 kHz, band-pass 20–1800 Hz, then normalise robustly.
+2. Compute quality indicators: SNR, clipping, dropouts, bandwidth and length.
+3. Score every 64 ms frame (16 ms hop) with the Random Forest, and compute frame energies.
+4. Apply the quality gate. If it fails, the result is withheld, but the candidate events are kept for inspection.
+5. Assemble events: start at or above the *start* threshold, continue at or above the *continue* threshold, merge gaps
+   shorter than the *merge gap*.
+6. Run the reliability model on each event: **Confident** at or above the reliability threshold, otherwise **Low-confidence**.
+
+Steps 1–3 are `Analyzer.score()` (slow; the web app caches it) and steps 4–6 are `Analyzer.assemble()` (fast), both in
+`src/swallohear/final.py`. That split is why moving a settings slider updates the result instantly. `Analyzer.analyze()`
+calls both and returns the same result as before the split.
+
+**Quality gate.** SNR is estimated from the recording itself as the 95th minus the 10th percentile of frame energy. The
+default cut-off (about 11.5 dB) is the 5th percentile of clean validation recordings, roughly the worst clean recording
+seen in training.
+
+**Reliability model.** A `StandardScaler` followed by a `LogisticRegression`, trained on held-out detections to predict
+whether each detected event is correct from seven measurements. Its score, not the detector's own confidence, decides the
+tier. Because the model is linear in the scaled measurements, its output is exactly:
+
+```text
+log-odds    = intercept + Σ coef_i × (value_i − mean_i) / scale_i
+reliability = 1 / (1 + e^(−log-odds))
+```
+
+Each term `coef_i × (value_i − mean_i) / scale_i` is one bar in the **Why this score?** chart. The intercept is the
+*average event* bar, and the bars add up exactly to the event's reliability score. This is the model's real arithmetic,
+not an approximation.
+
+</details>
 
 ---
 
@@ -172,7 +246,8 @@ flowchart LR
 ### What you need
 
 - **Windows, macOS or Linux**, with **Python 3.13** ([python.org](https://www.python.org/downloads/), or `py install 3.13` on Windows).
-- **Node.js 22 or 24 LTS**, only for the mobile app ([nodejs.org](https://nodejs.org)).
+- **Node.js 22 or 24 LTS**, only for the mobile app ([nodejs.org](https://nodejs.org)). Node 25 works but prints
+  "Unsupported engine" warnings.
 - **Expo Go** on your phone, only for the mobile app (App Store or Google Play).
 - About 1 GB of free disk space.
 
@@ -203,7 +278,9 @@ python -m pytest -q
 ```
 
 After the `activate` step your prompt starts with `(.venv)`. The last command runs the tests: **8 tests should pass in
-about 10 seconds**, which confirms everything is installed correctly.
+about 10 seconds**, which confirms everything is installed correctly. `requirements.txt` pins `numpy==2.2.6`,
+`scipy==1.15.3`, `scikit-learn==1.6.1` and `pandas==2.2.3`, established releases that also load on locked-down Windows
+PCs (see [Troubleshooting](#troubleshooting)).
 
 > [!NOTE]
 > Every time you open a new terminal, go to the `swallohear` folder and activate the environment again
@@ -216,19 +293,29 @@ streamlit run app/streamlit_app.py
 ```
 
 Your browser opens at **http://localhost:8501**. Choose **Demo** in the sidebar and pick a clip. Press **Ctrl+C** in the
-terminal to stop. Other devices on your Wi-Fi can open the *Network URL* that the terminal prints.
+terminal to stop. Other devices on your Wi-Fi can open the *Network URL* that the terminal prints. The app needs the
+trained models in `models/` and the demo clips in `data/demo/`, both included in the repository.
+
+> [!NOTE]
+> After pulling new code, **stop the server (Ctrl+C) and start it again.** Streamlit reloads files in `app/` by itself,
+> but not the `swallohear` package in `src/`.
 
 ### Option B: Mobile app on your phone
 
 The phone app sends audio to a small analysis server on your computer, through the same Expo connection that loads the
 app, so there is no server address to set up. The phone and the computer must be able to reach each other: the same
-Wi-Fi, or a hotspot from either device.
+Wi-Fi, a hotspot from either device, or `npx expo start --tunnel`.
 
 **Terminal 1: analysis server** (environment active, in the `swallohear` folder)
 
 ```bash
+pip install imageio-ffmpeg
 python api/server.py
 ```
+
+`imageio-ffmpeg` decodes phone recordings (M4A/AAC, or WebM in a browser); skip the `pip install` line if it is already
+installed. The first time, Windows asks whether Python may use the network. Allow it on **private networks**, or the
+phone cannot reach the server.
 
 **Terminal 2: the app**
 
@@ -248,13 +335,132 @@ Node.js may use the network, allow it.
 
 #### No phone? Use the mobile app in your browser
 
-With the server and `npx expo start` running as above, press **w** in Terminal 2. The mobile app opens in your browser
-at **http://localhost:8081**.
+With the server and `npx expo start` running as above, press **w** in Terminal 2, or run `npx expo start --web`. The
+mobile app opens in your browser at **http://localhost:8081**.
 
 #### Running everything at once
 
 You can run the web app, the phone app and the browser version **at the same time**. They use different ports:
 8501 (web app), 8000 (analysis server) and 8081 (mobile app in the browser).
+
+#### Using a different analysis server
+
+The app finds the server automatically. To point it at a separately hosted server instead, open **Settings** (the gear
+icon) → **Analysis server**. Choose **Automatic** to go back.
+
+<details>
+<summary>Build a standalone phone app (optional)</summary>
+
+Expo Go is enough for development and demos. To make an installable app, use EAS Build (no Android Studio or Xcode needed):
+
+```bash
+npx eas-cli@latest build --platform android --profile preview
+```
+
+Release builds can already talk to an `http://` server on the local network (`usesCleartextTraffic` on Android and
+`NSAllowsLocalNetworking` on iOS, both set in `mobile/app.json`). For use outside the local network, host
+`api/server.py` behind HTTPS and set its address under **Settings → Analysis server**.
+
+</details>
+
+---
+
+## Using the app
+
+### The four pages
+
+| Page | What it does |
+|---|---|
+| **Analyze** | Pick a source (Demo, Upload, Record or Synthetic), then read the verdict, five summary cards (confident events, low-confidence events, event rate, estimated SNR with its margin over the quality gate, processing time) and seven tabs: Timeline, Events, Rhythm, Robustness lab, Signal quality, Expert comparison and Session. |
+| **Compare** | Pick a recording for **A** and **B** (demo clip or upload, each with optional noise), or use a preset: *Same clip: clean vs noisy* or *Two different clips*. You get a side-by-side table with a **B − A** column, both detector scores overlaid, and aligned timelines. |
+| **Batch** | Choose demo clips and/or upload several files, optionally add noise to all of them, and analyse. You get totals (recordings, withheld, confident events, mean F1), a sortable table, an SNR-vs-events chart against the quality gate, and CSV/JSON downloads. |
+| **Method & results** | The four-step pipeline, interactive charts drawn from `results/` (noise robustness, and ordinary vs reliability-aware output at each noise level), headline numbers and limits. |
+
+On the phone, the four pages are the bottom tab bar, and the gear icon opens the detector settings.
+
+### Reading the verdict
+
+| Verdict | Meaning |
+|---|---|
+| **Events detected** | The recording passed the quality gate and events were found. |
+| **No event detected** | Quality was fine, but nothing crossed the threshold. |
+| **Result withheld** | Quality was too poor, so the result is withheld instead of guessed. The reason codes are shown as chips (for example, *Low SNR*). |
+
+### Reading the timeline and events
+
+- **Timeline panels.** Three stacked, zoomable panels share one time axis: the **waveform**, the **spectrogram**
+  (0–2 kHz, where swallow sounds show up as bright vertical bursts) and the **detector score** for every 16 ms step, with
+  the start and continue thresholds as dashed lines.
+- **Colours.** Shaded bands are detected events: **teal = Confident**, **amber = Low-confidence**. Dotted green outlines
+  are the expert labels, which you can switch on or off.
+- **Zooming.** On the web, drag to zoom and double-click to reset. On the phone, zoom 1–8× and swipe sideways.
+- **Event card.** Click or tap a numbered marker, or use **Prev / Next**. You can listen to a clip of just that event
+  (with 0.25 s either side), see the reliability gauge against the threshold, read the top reasons (↑ raised the score,
+  ↓ lowered it), and see a zoomed view. Then make **your call**: *Swallow*, *Not swallow* or *Unsure*. Your calls appear in
+  the event table, the exports and the report.
+- **"Why this score?"** The chart starts from an *average event*. Each of the seven measurements adds (teal) or
+  subtracts (amber) evidence, and the last bar is *this event's* score, compared with the threshold. A table beside it
+  compares this event's values with a typical event's.
+- **Raw detector confidence vs reliability.** An expander plots both scores for every event. It shows why the app uses the
+  learned reliability score: in testing, the raw detector score was a poor guide to correctness (AUROC 0.53 vs 0.79).
+
+### Rhythm
+
+The Rhythm tab describes how events are spread over time. It needs at least two events, and you can limit it to
+**Confident events only**.
+
+| Measure | How it is calculated |
+|---|---|
+| Events and rate | Count and events per minute |
+| Mean interval | Onset to onset, between consecutive events |
+| Regularity | Coefficient of variation (standard deviation ÷ mean) of the intervals: under 0.25 is *steady*, 0.25–0.5 *moderate*, above 0.5 *irregular* |
+| Longest quiet gap | Includes the stretch before the first event and after the last |
+
+Rhythm is descriptive only: short clips give few intervals, and missed or false detections distort the numbers.
+
+### Signal quality, expert comparison, stress test and robustness
+
+- **Signal quality.** Each quality-gate check is shown with a pass/fail icon, its value and its limit (SNR, clipping,
+  dropouts, bandwidth, duration). A histogram of frame energies shows the noise floor (10th percentile) and peaks (95th
+  percentile); the SNR estimate is the gap between them. In the average spectrum, spikes at 60, 120 and 180 Hz point to
+  mains hum, and a raised flat line points to broadband hiss.
+- **Expert comparison.** For recordings with expert labels (demo clips and synthetic signals), you see matched events,
+  false detections, misses, precision, recall and F1, plus **Expert vs System** lanes. A detection counts as matched when
+  it overlaps a labelled swallow by at least half. **One clip proves nothing.**
+- **Stress test.** Add white, pink or 60 Hz mains-hum noise at an SNR from −5 to 30 dB, or simulate clipping (the input
+  is boosted 4× and hard-clipped, like a microphone gain set too high). For example, a clean clip with white noise at 10 dB
+  drops the estimated SNR below the gate, so the verdict becomes **Result withheld** with the reason *Low SNR*.
+- **Robustness lab.** Press **Run sweep** to re-analyse the recording at seven noise levels (clean, then 30 down to 0 dB)
+  with the noise type you choose. The chart stacks Confident, Low-confidence and Withheld events and overlays the
+  estimated SNR against the quality-gate line, so you can see where the system stops reporting and withholds instead. The
+  table adds F1 against the expert labels at each level.
+
+### Detector settings
+
+All five settings are live sliders. A badge shows when you are off the validated values, and **Reset to validated**
+restores them. The reported results always use the validated values.
+
+| Setting | What it does | Validated value |
+|---|---|---|
+| Reliability threshold | Events at or above it are *Confident*. Higher means fewer events, more of them correct. | 0.50 |
+| Start threshold | Frame score that starts an event. | 0.70 |
+| Continue threshold | Frame score that keeps an event going (capped at the start threshold). | 0.65 |
+| Merge gap | Events closer than this are merged. | 0.4 s |
+| Quality gate: minimum SNR | Below this the result is withheld. | about 11.5 dB |
+
+### Exports and your data
+
+| Where | What you get |
+|---|---|
+| **Report** (Analyze header) | A self-contained HTML report: disclaimer, verdict, summary, timeline, events-over-time chart, event table with reasons and your calls, rhythm, expert agreement, quality gate, settings and limits. It works offline (about 5 MB). Open it and press **Ctrl+P → Save as PDF** for a PDF. On the phone it opens in the phone's browser, where you can share it or print to PDF. |
+| **Events (CSV)** | One row per event: times, duration, reliability, raw confidence, tier, your call. |
+| **Full result (JSON)** | Status, reason codes, settings, stress test, events, withheld candidates, quality and annotations. |
+| **My annotations** | Only the events you gave a call. |
+| **Session log / All annotations** | Every analysis you ran this session, and all your calls. |
+| **Batch CSV / JSON** | One row per recording. |
+
+On the phone, downloads open the **share sheet** (save to Files, email, chat…). **Your calls and the session log live
+only in the open browser tab or app session, so download them if you want to keep them.**
 
 ---
 
@@ -322,6 +528,10 @@ in order. Random seeds are fixed, and steps 3–6 take about 30 minutes on a lap
 | `app/streamlit_app.py`, `app/views/` | The web app (Analyze, Compare, Batch, Method & results pages) |
 | `api/server.py` | HTTP API used by the mobile app |
 | `mobile/` | The Expo / React Native mobile app |
+| `mobile/src/app/` | Expo Router routes (one file per tab) |
+| `mobile/src/screens/` | The four screens; `analyze/` holds the source panel and the seven tabs |
+| `mobile/src/components/` | UI kit (`ui.tsx`), SVG charts (`charts.tsx`), audio player, header and settings sheet, tab bars |
+| `mobile/src/lib/` | API client, app state (theme, settings, calls, session), theme colours, exports, rhythm maths |
 | `models/` | Trained models (noise-augmented Random Forest, reliability model) |
 | `configs/final.json` | Thresholds selected on validation participants |
 | `results/` | Experiment outputs (JSON) that every reported number comes from |
@@ -332,6 +542,47 @@ in order. Random seeds are fixed, and steps 3–6 take about 30 minutes on a lap
 
 </details>
 
+## Developer notes
+
+<details>
+<summary>API, checks and regenerating the docs</summary>
+
+**Mobile stack.** The mobile app is an [Expo](https://expo.dev) (React Native) app that runs on Android and iOS from one
+codebase, and in a browser for quick checks. Charts are drawn with `react-native-svg`; the spectrogram is rendered as an
+image by the server. The server (`api/server.py`) is built on Starlette and uvicorn, which Streamlit already installs, so
+there are no new compiled packages for Windows Smart App Control to block.
+
+**API endpoints.** `/api/meta`, `/api/load`, `/api/analyze`, `/api/sweep`, `/api/batch`, plus audio and report endpoints.
+The Expo dev server (`mobile/metro.config.js`) forwards every `/api/…` request to `api/server.py` on the same computer.
+The server keeps the last 40 recordings in memory.
+
+**Checks.** Run the first three inside `mobile/`:
+
+```bash
+npm run typecheck
+npm run lint
+npx expo-doctor
+python tests/test_api.py
+```
+
+`tests/test_api.py` starts the API and calls every endpoint, including an M4A upload.
+
+**Regenerate the screenshots and video.** `scripts/capture_docs.py` starts the web app, drives it in Microsoft Edge with
+Playwright, and rewrites `docs/images/*.png`, `docs/demo.gif` and `docs/demo.webm`. Playwright is a development-only tool,
+so it is not in `requirements.txt`:
+
+```bash
+pip install playwright
+python -m playwright install ffmpeg
+python scripts/capture_docs.py
+```
+
+Use `--browser chrome` to drive Google Chrome instead of Edge. `scripts/capture_mobile.py` regenerates the phone
+screenshots (the API and `npx expo start --web --port 8081` must be running), and `mobile/scripts/make_icons.py` draws
+the app icon and splash image.
+
+</details>
+
 ## Troubleshooting
 
 <details>
@@ -339,13 +590,17 @@ in order. Random seeds are fixed, and steps 3–6 take about 30 minutes on a lap
 
 | Problem | Fix |
 |---|---|
-| `DLL load failed … An Application Control policy has blocked this file` | Windows Smart App Control is blocking a very new package. Use Python 3.13 and `pip install -r requirements.txt` (it pins versions that load). |
+| `DLL load failed … An Application Control policy has blocked this file` | Windows 11 Smart App Control blocks unsigned compiled files that Microsoft has not seen enough of yet, which includes the very newest `pandas`, `scikit-learn` and Python releases. Use Python 3.13 and `pip install -r requirements.txt` (it pins versions that load). |
+| `'LogisticRegression' object has no attribute 'multi_class'` | The models were saved with a different scikit-learn version than the one installed. Reinstall the pinned versions with `pip install -r requirements.txt` (the models in `models/` were retrained with scikit-learn 1.6.1). |
 | `'streamlit'` or `'python'` is not recognized | Go to the `swallohear` folder and activate the environment first (`.venv\Scripts\activate` on Windows). |
-| `AttributeError: 'Analyzer' object has no attribute 'score'` | The server was started before you updated the code. Stop it with Ctrl+C and start it again. |
-| Phone app: "Can't reach the analysis server" | Make sure `python api/server.py` is running on the same computer as `npx expo start`, then reload the app. In Settings (gear icon) → Analysis server, choose **Automatic**. |
-| Expo Go: "The request timed out" | The phone can't reach the computer. Restart `npx expo start` after changing Wi-Fi and scan the **new** QR code. Some routers and phone hotspots block devices from talking to each other: use the computer's own Mobile Hotspot, or your iPhone's Personal Hotspot with the computer joined to it. |
+| `AttributeError: 'Analyzer' object has no attribute 'score'` | The server was started before you updated the code. Stop it with Ctrl+C and start it again. Streamlit reloads `app/` by itself but not the package in `src/`. |
+| Blank page after restarting a server | The browser tab was still connected to the old server. Reload the page. |
+| Phone app: "Can't reach the analysis server" | Make sure `python api/server.py` is running on the same computer as `npx expo start`, then reload the app. In Settings (gear icon) → Analysis server, choose **Automatic**. If Windows asked about network access, allow Python on **private networks**. |
+| Expo Go: "The request timed out" | The phone can't reach the computer. After changing Wi-Fi, restart `npx expo start` and scan the **new** QR code (never reopen an old project from *Recently opened*). Many routers and Android hotspots block devices from talking to each other: use the computer's own **Mobile Hotspot** (Windows Settings → Network & internet), or your iPhone's **Personal Hotspot** with the computer joined to it. |
 | iPhone: "You need to be signed in to Expo Go and Expo CLI" | Sign in to the same Expo account in Expo Go and with `npx expo login --no-browser` on the computer. |
-| Blank page after restarting a server | Reload the browser tab. |
+| A recording uploads but fails to decode | Run `pip install imageio-ffmpeg` in the environment (needed for M4A, AAC and WebM). |
+| "Recording expired; load it again" | The server keeps the last 40 recordings in memory, and restarting it clears them. Pick the clip again. |
+| The microphone does nothing | Allow microphone access for Expo Go (or SWALLOHear) in the phone's settings. |
 
 </details>
 
